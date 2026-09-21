@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hôm Nay Ăn Gì & Cà Phê Ở Đâu? - Food & Cafe Finder</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Be Vietnam Pro', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font: Be Vietnam Pro -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        /* Smooth Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 99px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Fast Spin Keyframes */
+        @keyframes fastFlash {
+            0% { opacity: 0.3; transform: scale(0.92); }
+            50% { opacity: 1; transform: scale(1.08); }
+            100% { opacity: 0.3; transform: scale(0.92); }
+        }
+        .animate-fast-flash {
+            animation: fastFlash 0.07s infinite;
+        }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col min-h-screen">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-orange-500/20 text-xl">
+                    🍜
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-base sm:text-lg text-slate-900 leading-tight">Hôm Nay Ăn Gì?</h1>
+                    <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                        <span id="badge-room-status" class="inline-flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60 cursor-pointer" onclick="openRoomModal()">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span id="text-room-name">nhom-foodie-pro</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons Header -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="copyShareLink()" title="Sao chép link chia sẻ phòng" class="px-3 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold text-xs transition border border-orange-200/60 flex items-center gap-1.5 active:scale-95">
+                    <i class="fa-solid fa-share-nodes text-sm"></i>
+                    <span class="hidden md:inline">Chia Sẻ Link</span>
+                </button>
+
+                <button onclick="openRandomModal()" class="px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-500/25 transition-all duration-200 active:scale-95 flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-amber-200"></i>
+                    <span>Gợi Ý 0.35s</span>
+                </button>
+
+                <button onclick="openSpotModal()" class="px-3 sm:px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm transition-all duration-200 active:scale-95 flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span class="hidden sm:inline">Thêm Quán</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Banner Hero Intro -->
+        <section class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-orange-950 to-slate-900 text-white p-6 sm:p-8 shadow-xl">
+            <div class="absolute -right-6 -bottom-6 opacity-10 text-9xl pointer-events-none select-none">
+                🍱
+            </div>
+            <div class="relative z-10 max-w-2xl space-y-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                        <i class="fa-solid fa-bolt text-amber-400"></i> Gợi Ý Trong 0.35 Giây
+                    </span>
+                    <button onclick="openRoomModal()" class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+                        <i class="fa-solid fa-users text-orange-400"></i> Phòng: <span id="text-room-banner" class="font-bold text-white">nhom-foodie-pro</span> (Đổi)
+                    </button>
+                </div>
+
+                <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Cùng Nhóm Bạn Ăn Ngon - Chọn Quán Trong Tích Tắc!</h2>
+                <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    Lưu danh sách quán tủ, đồng bộ tức thì với nhóm bạn qua Mã Phòng. Bấm nút quay ngẫu nhiên 0.35s để quyết định món ăn mỗi ngày!
+                </p>
+                
+                <!-- Quick Stats -->
+                <div class="pt-2 flex flex-wrap items-center gap-4 text-xs sm:text-sm text-slate-300">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-store text-orange-400"></i>
+                        <span>Đã lưu: <strong id="stat-total-count" class="text-white font-bold">0</strong> quán</span>
+                    </div>
+                    <div class="w-1 h-1 rounded-full bg-slate-600"></div>
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-location-dot text-amber-400"></i>
+                        <span>Khu vực: <strong id="stat-district-count" class="text-white font-bold">0</strong> quận</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search & Filter Controls -->
+        <section class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
+            
+            <!-- Search Bar + Sorting -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="relative flex-grow">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="input-search" oninput="applyFilters()" placeholder="Tìm tên quán, món ăn đặc trưng, quận..." 
+                        class="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm transition-all">
+                </div>
+                
+                <!-- Sort Selector -->
+                <div class="sm:w-52 flex-shrink-0">
+                    <select id="select-sort" onchange="applyFilters()" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-slate-700 font-medium">
+                        <option value="rating-desc">⭐ Đánh giá (Cao -> Thấp)</option>
+                        <option value="rating-asc">⭐ Đánh giá (Thấp -> Cao)</option>
+                        <option value="name-asc">🔤 Tên A-Z</option>
+                        <option value="price-asc">💵 Mức giá ($ -> $$$)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Filter Dropdowns Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 pt-1 border-t border-slate-100">
+                <!-- District Filter -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Quận / Khu vực</label>
+                    <select id="filter-district" onchange="applyFilters()" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-orange-500 text-slate-700">
+                        <option value="">Tất cả Quận</option>
+                    </select>
+                </div>
+
+                <!-- Category Filter -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Loại hình / Món ăn</label>
+                    <select id="filter-category" onchange="applyFilters()" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-orange-500 text-slate-700">
+                        <option value="">Tất cả Thể Loại</option>
+                        <option value="Cơm">🍚 Cơm</option>
+                        <option value="Bún / Phở">🍜 Bún / Phở / Mỳ</option>
+                        <option value="Lẩu & Nướng">🍲 Lẩu & Nướng</option>
+                        <option value="Cafe Chill">☕ Cafe Chill / Sống ảo</option>
+                        <option value="Cafe Làm việc">💻 Cafe Làm Việc</option>
+                        <option value="Trà Sữa / Ăn Vặt">🧋 Trà Sữa / Ăn Vặt</option>
+                        <option value="Nhậu / Bia">🍻 Món Nhậu / Bia</option>
+                        <option value="Khác">✨ Khác</option>
+                    </select>
+                </div>
+
+                <!-- Min Rating Filter -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 mb-1">Đánh giá sao</label>
+                    <select id="filter-rating" onchange="applyFilters()" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-orange-500 text-slate-700">
+                        <option value="0">Tất cả sao</option>
+                        <option value="4.5">⭐ 4.5 trở lên</option>
+                        <option value="4.0">⭐ 4.0 trở lên</option>
+                        <option value="3.5">⭐ 3.5 trở lên</option>
+                    </select>
+                </div>
+
+                <!-- Reset Filters Button -->
+                <div class="flex items-end">
+                    <button onclick="resetFilters()" class="w-full py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-600 transition-colors flex items-center justify-center gap-1.5 h-[38px]">
+                        <i class="fa-solid fa-rotate-left text-xs"></i> Đặt lại bộ lọc
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Spots Grid Container -->
+        <section>
+            <!-- Active filter counter headline -->
+            <div class="flex items-center justify-between mb-4 px-1">
+                <h3 class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                    <span>Danh sách địa điểm</span>
+                    <span id="filtered-count-badge" class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">0</span>
+                </h3>
+
+                <button onclick="openRandomModal()" class="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1">
+                    <i class="fa-solid fa-bolt text-amber-500"></i> Gợi ý nhanh danh sách này
+                </button>
+            </div>
+
+            <!-- Cards Grid -->
+            <div id="spots-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                <!-- Cards will be dynamically populated -->
+            </div>
+
+            <!-- Empty State Display -->
+            <div id="empty-state" class="hidden py-16 text-center space-y-4 bg-white rounded-2xl border border-dashed border-slate-300">
+                <div class="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto text-3xl">
+                    🔍
+                </div>
+                <div class="space-y-1">
+                    <p class="text-base font-bold text-slate-800">Không tìm thấy quán nào phù hợp!</p>
+                    <p class="text-xs text-slate-500 max-w-sm mx-auto">Thử thay đổi từ khóa, chọn lại quận/món ăn hoặc thêm địa điểm mới vào phòng này.</p>
+                </div>
+                <button onclick="resetFilters()" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition">
+                    Xóa tất cả bộ lọc
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Mobile Floating Random Button -->
+    <div class="fixed bottom-5 right-5 sm:hidden z-20">
+        <button onclick="openRandomModal()" class="w-14 h-14 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-xl shadow-orange-500/40 flex items-center justify-center text-xl active:scale-95 transition">
+            <i class="fa-solid fa-bolt"></i>
+        </button>
+    </div>
+
+    <!-- Footer Area -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-slate-500 text-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <span>❤️ Cùng bạn khám phá thế giới ẩm thực mỗi ngày</span>
+            </div>
+            
+            <!-- Backup & Export buttons -->
+            <div class="flex items-center gap-3">
+                <button onclick="exportData()" class="hover:text-slate-800 flex items-center gap-1 transition">
+                    <i class="fa-solid fa-download"></i> Xuất dữ liệu (JSON)
+                </button>
+                <span>•</span>
+                <label class="hover:text-slate-800 cursor-pointer flex items-center gap-1 transition">
+                    <i class="fa-solid fa-upload"></i> Nhập dữ liệu
+                    <input type="file" id="file-import" accept=".json" class="hidden" onchange="importData(event)">
+                </label>
+                <span>•</span>
+                <button onclick="confirmResetDefaultData()" class="hover:text-rose-600 flex items-center gap-1 transition">
+                    <i class="fa-solid fa-rotate-left"></i> Khôi phục mẫu
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal: Add or Edit Spot (Fixed Scroll Container) -->
+    <div id="modal-spot" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+        
+        <!-- Modal Container with explicit Max Height & Flex Column -->
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[88vh] overflow-hidden my-auto">
+            
+            <!-- Fixed Header -->
+            <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
+                <h3 id="modal-spot-title" class="font-bold text-sm sm:text-base flex items-center gap-2">
+                    <i class="fa-solid fa-square-plus text-orange-400"></i> Thêm Quán Mới
+                </h3>
+                <button onclick="closeSpotModal()" class="text-slate-400 hover:text-white transition text-lg w-8 h-8 flex items-center justify-center rounded-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Scrollable Form Body -->
+            <form id="form-spot" onsubmit="saveSpotForm(event)" class="p-5 space-y-4 overflow-y-auto flex-1">
+                <input type="hidden" id="spot-id">
+
+                <!-- Tên quán -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Tên quán <span class="text-rose-500">*</span></label>
+                    <input type="text" id="spot-name" required placeholder="Ví dụ: Phở Thìn Lò Đúc, Cà Phê Giảng..." 
+                        class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none">
+                </div>
+
+                <!-- Emoji Picker Grid -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Chọn Icon / Biểu tượng <span class="text-rose-500">*</span></label>
+                    <div id="emoji-picker-container" class="grid grid-cols-6 sm:grid-cols-9 gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl max-h-32 overflow-y-auto">
+                        <!-- Emoji buttons populated via JS -->
+                    </div>
+                    <input type="hidden" id="spot-emoji" value="🍜" required>
+                </div>
+
+                <!-- District & Category Row -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Quận / Khu vực <span class="text-rose-500">*</span></label>
+                        <input type="text" id="spot-district" required placeholder="Ví dụ: Quận 1, Cầu Giấy..." list="district-suggestions"
+                            class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none">
+                        <datalist id="district-suggestions"></datalist>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Loại hình <span class="text-rose-500">*</span></label>
+                        <select id="spot-category" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white">
+                            <option value="Cơm">🍚 Cơm</option>
+                            <option value="Bún / Phở">🍜 Bún / Phở / Mỳ</option>
+                            <option value="Lẩu & Nướng">🍲 Lẩu & Nướng</option>
+                            <option value="Cafe Chill">☕ Cafe Chill / Sống ảo</option>
+                            <option value="Cafe Làm việc">💻 Cafe Làm Việc</option>
+                            <option value="Trà Sữa / Ăn Vặt">🧋 Trà Sữa / Ăn Vặt</option>
+                            <option value="Nhậu / Bia">🍻 Món Nhậu / Bia</option>
+                            <option value="Khác">✨ Khác</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Rating & Price level -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Đánh giá Google Maps (⭐)</label>
+                        <input type="number" id="spot-rating" step="0.1" min="1" max="5" value="4.5" 
+                            class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Mức giá</label>
+                        <select id="spot-price" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white">
+                            <option value="$">$ - Bình dân (&lt; 50k)</option>
+                            <option value="$$">$$ - Vừa túi tiền (50k - 150k)</option>
+                            <option value="$$$">$$$ - Sang chảnh (&gt; 150k)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Google Maps Link -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Link Google Maps (Tùy chọn)</label>
+                    <input type="url" id="spot-maps" placeholder="Dán link Maps hoặc bỏ trống để tự tạo link tìm kiếm" 
+                        class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none">
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Ghi chú (Món ngon, lưu ý...)</label>
+                    <textarea id="spot-notes" rows="2" placeholder="Ví dụ: Phở tái lăn nhiều hành, quẩy giòn rum. Đi buổi sáng đỡ đông..." 
+                        class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"></textarea>
+                </div>
+
+                <!-- Submit Button for Form -->
+                <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100 flex-shrink-0">
+                    <button type="button" onclick="closeSpotModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50 transition">
+                        Hủy
+                    </button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 transition">
+                        Lưu Địa Điểm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Fast Random Picker (Gợi ý siêu tốc 0.35s) -->
+    <div id="modal-random" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 text-center p-6 space-y-5 relative">
+            
+            <button onclick="closeRandomModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600 transition text-lg w-8 h-8 flex items-center justify-center rounded-full bg-slate-100">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="space-y-1">
+                <span class="inline-block px-3 py-1 rounded-full bg-orange-100 text-orange-600 font-bold text-xs">
+                    ⚡ Đề Xuất Siêu Tốc (0.35s)
+                </span>
+                <h3 class="font-extrabold text-xl text-slate-900">Hôm Nay Ăn Quán Này!</h3>
+            </div>
+
+            <!-- Result Display Box -->
+            <div class="bg-slate-900 text-white p-6 rounded-2xl min-h-[150px] flex flex-col items-center justify-center relative overflow-hidden border-2 border-orange-500/50 shadow-inner">
+                <div id="picker-animation-box" class="space-y-2 w-full">
+                    <div id="picker-temp-emoji" class="text-5xl my-1 animate-bounce">
+                        🎲
+                    </div>
+                    <div id="picker-temp-name" class="text-xl font-extrabold text-amber-400 tracking-wide line-clamp-1">
+                        Đang chọn cho bạn...
+                    </div>
+                    <div id="picker-temp-sub" class="text-xs text-slate-400">
+                        Chỉ mất 0.35 giây!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Controls inside Modal -->
+            <div class="space-y-2.5 pt-1">
+                <button id="btn-spin-start" onclick="startFastSpinning()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm shadow-lg shadow-orange-500/30 transition active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bolt"></i> CHỌN QUÁN NGAY!
+                </button>
+
+                <div id="picker-result-actions" class="hidden flex flex-col gap-2">
+                    <a id="btn-winner-maps" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-map-location-dot"></i> Mở Google Maps Dẫn Đường
+                    </a>
+                    <button onclick="startFastSpinning()" class="w-full py-2.5 rounded-2xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-rotate"></i> Đổi quán khác
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Change or Join Room -->
+    <div id="modal-room" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 p-5 space-y-4 relative">
+            <button onclick="closeRoomModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600 transition text-lg w-8 h-8 flex items-center justify-center rounded-full bg-slate-100">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="flex items-center gap-2 text-slate-900">
+                <i class="fa-solid fa-users text-orange-500 text-xl"></i>
+                <h3 class="font-bold text-base">Quản Lý Mã Phòng Nhóm</h3>
+            </div>
+
+            <p class="text-xs text-slate-500 leading-relaxed">
+                Nhập Tên/Mã Phòng chung để bạn và nhóm bạn sử dụng cùng một danh sách quán ăn. Tất cả thay đổi sẽ được lưu chung vào phòng này!
+            </p>
+
+            <div class="space-y-3 pt-1">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Mã Phòng Hiện Tại</label>
+                    <input type="text" id="input-room-id" placeholder="Ví dụ: nhom-hoi-an-2026, team-sài-gòn..." 
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none font-bold text-orange-600">
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2">
+                    <button onclick="copyShareLink()" type="button" class="px-3.5 py-2 rounded-xl bg-orange-50 text-orange-700 text-xs font-bold hover:bg-orange-100 transition flex items-center gap-1">
+                        <i class="fa-solid fa-share-nodes"></i> Sao chép link phòng
+                    </button>
+                    <button onclick="changeRoomSubmit()" type="button" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition">
+                        Vào Phòng Này
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Box -->
+    <div id="toast-container" class="fixed top-20 right-5 z-50 pointer-events-none space-y-2"></div>
+
+    <script>
+        // Available Emoji Options for Food & Cafe Icons
+        const EMOJI_OPTIONS = [
+            '🍜', '🍚', '☕', '🧋', '🍕', '🥩', '🍰', '🍔', 
+            '🍲', '🍣', '🍻', '🍹', '🥗', '🍦', '🥐', '🥟', '🌭', '🥪'
+        ];
+
+        // Sample Initial Data
+        const DEFAULT_SPOTS = [
+            {
+                id: "1",
+                name: "Phở Thìn Lò Đúc",
+                district: "Hai Bà Trưng",
+                category: "Bún / Phở",
+                rating: 4.6,
+                price: "$$",
+                emoji: "🍜",
+                maps: "",
+                notes: "Phở tái lăn xào xèo ngập hành hoa thơm phức. Nên đi ăn sáng!"
+            },
+            {
+                id: "2",
+                name: "Cà Phê Giảng",
+                district: "Hoàn Kiếm",
+                category: "Cafe Chill",
+                rating: 4.7,
+                price: "$",
+                emoji: "☕",
+                maps: "",
+                notes: "Cà phê trứng lâu đời nổi tiếng Hà Nội. Vị béo ngậy đậm đà."
+            },
+            {
+                id: "3",
+                name: "Bún Đậu Mắm Tôm Hàng Khay",
+                district: "Hoàn Kiếm",
+                category: "Bún / Phở",
+                rating: 4.5,
+                price: "$$",
+                emoji: "🥟",
+                maps: "",
+                notes: "Chả cốm giòn ngon, mắm tôm pha cực vừa miệng ngay trong ngõ nhỏ."
+            },
+            {
+                id: "4",
+                name: "The Workshop Coffee",
+                district: "Quận 1",
+                category: "Cafe Làm việc",
+                rating: 4.6,
+                price: "$$$",
+                emoji: "💻",
+                maps: "",
+                notes: "Không gian làm việc yên tĩnh chuẩn Specialty Coffee giữa lòng Sài Gòn."
+            },
+            {
+                id: "5",
+                name: "Cơm Tấm Ba Cường",
+                district: "Quận 3",
+                category: "Cơm",
+                rating: 4.4,
+                price: "$$",
+                emoji: "🍚",
+                maps: "",
+                notes: "Sườn nướng mật ong thơm xèo xèo, chả trứng siêu to béo ngậy."
+            },
+            {
+                id: "6",
+                name: "Lẩu Nướng Đêm Hồ Tây",
+                district: "Tây Hồ",
+                category: "Lẩu & Nướng",
+                rating: 4.5,
+                price: "$$$",
+                emoji: "🥩",
+                maps: "",
+                notes: "View mặt nước lộng gió chill ngút ngàn, đồ nướng ướp đậm đà."
+            },
+            {
+                id: "7",
+                name: "Trà Sữa Matcha House",
+                district: "Cầu Giấy",
+                category: "Trà Sữa / Ăn Vặt",
+                rating: 4.8,
+                price: "$",
+                emoji: "🧋",
+                maps: "",
+                notes: "Trà xanh đậm vị Nhật Bản, không gian học tập chill gọn gàng."
+            },
+            {
+                id: "8",
+                name: "Bia Hơi Ngõ Trạm",
+                district: "Hoàn Kiếm",
+                category: "Nhậu / Bia",
+                rating: 4.3,
+                price: "$",
+                emoji: "🍻",
+                maps: "",
+                notes: "Bia hơi mát lạnh, đậu lướt ván giòn tan chuẩn không khí phố cổ."
+            }
+        ];
+
+        let spots = [];
+        let filteredSpots = [];
+        let currentRoomId = "nhom-foodie-pro";
+        let spinInterval = null;
+        let broadcastChannel = null;
+
+        window.onload = function() {
+            initRoomFromURL();
+            renderEmojiPicker();
+            loadSpotsData();
+            populateDistrictDropdowns();
+            applyFilters();
+            setupBroadcastChannel();
+        };
+
+        function initRoomFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const urlRoom = params.get('room');
+            if (urlRoom && urlRoom.trim() !== '') {
+                currentRoomId = urlRoom.trim().toLowerCase();
+            } else {
+                currentRoomId = "nhom-foodie-pro";
+            }
+            updateRoomUI();
+        }
+
+        function updateRoomUI() {
+            document.getElementById('text-room-name').textContent = currentRoomId;
+            document.getElementById('text-room-banner').textContent = currentRoomId;
+            document.getElementById('input-room-id').value = currentRoomId;
+        }
+
+        function setupBroadcastChannel() {
+            if ('BroadcastChannel' in window) {
+                if (broadcastChannel) broadcastChannel.close();
+                broadcastChannel = new BroadcastChannel('food_finder_channel_' + currentRoomId);
+                broadcastChannel.onmessage = function(event) {
+                    if (event.data && event.data.type === 'SYNC') {
+                        loadSpotsData(false);
+                        applyFilters();
+                        showToast('🔄 Đã cập nhật danh sách mới từ bạn cùng phòng!', 'info');
+                    }
+                };
+            }
+        }
+
+        function broadcastChange() {
+            if (broadcastChannel) {
+                broadcastChannel.postMessage({ type: 'SYNC', timestamp: Date.now() });
+            }
+        }
+
+        function loadSpotsData(saveIfEmpty = true) {
+            const storageKey = 'food_finder_spots_room_' + currentRoomId;
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+                try {
+                    spots = JSON.parse(stored);
+                } catch(e) {
+                    spots = [...DEFAULT_SPOTS];
+                }
+            } else {
+                spots = [...DEFAULT_SPOTS];
+                if (saveIfEmpty) saveSpotsData();
+            }
+        }
+
+        function saveSpotsData() {
+            const storageKey = 'food_finder_spots_room_' + currentRoomId;
+            localStorage.setItem(storageKey, JSON.stringify(spots));
+            updateStatsCounters();
+            broadcastChange();
+        }
+
+        function renderEmojiPicker() {
+            const container = document.getElementById('emoji-picker-container');
+            container.innerHTML = EMOJI_OPTIONS.map(emoji => `
+                <button type="button" onclick="selectEmoji('${emoji}')" id="btn-emoji-${emoji}" 
+                    class="emoji-btn h-10 rounded-lg text-lg flex items-center justify-center border border-transparent hover:bg-orange-100 transition">
+                    ${emoji}
+                </button>
+            `).join('');
+            selectEmoji('🍜');
+        }
+
+        function selectEmoji(emoji) {
+            document.getElementById('spot-emoji').value = emoji;
+            document.querySelectorAll('.emoji-btn').forEach(btn => {
+                btn.classList.remove('bg-orange-500', 'text-white', 'border-orange-500', 'shadow-sm');
+                btn.classList.add('hover:bg-orange-100');
+            });
+            const selectedBtn = document.getElementById(`btn-emoji-${emoji}`);
+            if (selectedBtn) {
+                selectedBtn.classList.add('bg-orange-500', 'border-orange-500', 'shadow-sm');
+                selectedBtn.classList.remove('hover:bg-orange-100');
+            }
+        }
+
+        function populateDistrictDropdowns() {
+            const districts = [...new Set(spots.map(s => s.district))].sort();
+            const filterSelect = document.getElementById('filter-district');
+            const currentVal = filterSelect.value;
+            filterSelect.innerHTML = '<option value="">Tất cả Quận</option>';
+            districts.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = d;
+                filterSelect.appendChild(opt);
+            });
+            filterSelect.value = currentVal;
+
+            const datalist = document.getElementById('district-suggestions');
+            datalist.innerHTML = '';
+            districts.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d;
+                datalist.appendChild(opt);
+            });
+        }
+
+        function getSafeGoogleMapsUrl(spot) {
+            if (spot.maps && spot.maps.trim().startsWith('http')) {
+                return spot.maps.trim();
+            }
+            const searchQuery = encodeURIComponent(`${spot.name} ${spot.district}`);
+            return `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
+        }
+
+        function applyFilters() {
+            const query = document.getElementById('input-search').value.toLowerCase().trim();
+            const selectedDistrict = document.getElementById('filter-district').value;
+            const selectedCategory = document.getElementById('filter-category').value;
+            const minRating = parseFloat(document.getElementById('filter-rating').value) || 0;
+            const sortOption = document.getElementById('select-sort').value;
+
+            filteredSpots = spots.filter(spot => {
+                const matchQuery = !query || 
+                    spot.name.toLowerCase().includes(query) || 
+                    spot.notes.toLowerCase().includes(query) ||
+                    spot.district.toLowerCase().includes(query) ||
+                    spot.category.toLowerCase().includes(query);
+
+                const matchDistrict = !selectedDistrict || spot.district === selectedDistrict;
+                const matchCategory = !selectedCategory || spot.category === selectedCategory;
+                const matchRating = spot.rating >= minRating;
+
+                return matchQuery && matchDistrict && matchCategory && matchRating;
+            });
+
+            filteredSpots.sort((a, b) => {
+                if (sortOption === 'rating-desc') return b.rating - a.rating;
+                if (sortOption === 'rating-asc') return a.rating - b.rating;
+                if (sortOption === 'name-asc') return a.name.localeCompare(b.name, 'vi');
+                if (sortOption === 'price-asc') return a.price.length - b.price.length;
+                return 0;
+            });
+
+            renderGrid();
+            updateStatsCounters();
+        }
+
+        function renderGrid() {
+            const container = document.getElementById('spots-grid');
+            const emptyState = document.getElementById('empty-state');
+            const badgeCount = document.getElementById('filtered-count-badge');
+
+            badgeCount.textContent = filteredSpots.length;
+
+            if (filteredSpots.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            container.innerHTML = filteredSpots.map(spot => {
+                const mapsUrl = getSafeGoogleMapsUrl(spot);
+
+                return `
+                    <div class="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
+                        
+                        <div>
+                            <!-- Header Info with Emoji Circle -->
+                            <div class="flex items-start gap-3 mb-3">
+                                <div class="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-3xl flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                    ${spot.emoji || '🍜'}
+                                </div>
+
+                                <div class="flex-grow min-w-0">
+                                    <div class="flex items-center justify-between gap-1 mb-0.5">
+                                        <span class="text-[11px] font-bold text-orange-600 uppercase tracking-wide truncate">
+                                            ${spot.category}
+                                        </span>
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-100 text-amber-800 flex-shrink-0">
+                                            ⭐ ${spot.rating}
+                                        </span>
+                                    </div>
+                                    <h4 class="font-extrabold text-base text-slate-900 group-hover:text-orange-600 transition-colors truncate">
+                                        ${spot.name}
+                                    </h4>
+                                    <div class="flex items-center gap-2 mt-1 text-xs text-slate-500 font-medium">
+                                        <span><i class="fa-solid fa-location-dot text-orange-500 mr-1"></i>${spot.district}</span>
+                                        <span>•</span>
+                                        <span class="text-emerald-600 font-bold">${spot.price}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Notes -->
+                            <p class="text-xs text-slate-500 line-clamp-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 italic">
+                                ${spot.notes ? `"${spot.notes}"` : 'Chưa có ghi chú đặc biệt.'}
+                            </p>
+                        </div>
+
+                        <!-- Card Action Footer -->
+                        <div class="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="flex-grow py-2 px-3 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                                <i class="fa-solid fa-map-location-dot text-sm"></i> Mở Google Maps
+                            </a>
+                            
+                            <div class="flex items-center gap-1">
+                                <button onclick="openSpotModal('${spot.id}')" title="Sửa" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center text-xs transition">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="deleteSpot('${spot.id}')" title="Xóa" class="w-8 h-8 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center text-xs transition">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function resetFilters() {
+            document.getElementById('input-search').value = '';
+            document.getElementById('filter-district').value = '';
+            document.getElementById('filter-category').value = '';
+            document.getElementById('filter-rating').value = '0';
+            document.getElementById('select-sort').value = 'rating-desc';
+            applyFilters();
+            showToast('Đã đặt lại tất cả bộ lọc');
+        }
+
+        function updateStatsCounters() {
+            document.getElementById('stat-total-count').textContent = spots.length;
+            const uniqueDistricts = new Set(spots.map(s => s.district)).size;
+            document.getElementById('stat-district-count').textContent = uniqueDistricts;
+        }
+
+        function openSpotModal(id = null) {
+            const modal = document.getElementById('modal-spot');
+            const title = document.getElementById('modal-spot-title');
+            const form = document.getElementById('form-spot');
+
+            form.reset();
+            document.getElementById('spot-id').value = '';
+
+            if (id) {
+                const spot = spots.find(s => s.id === id);
+                if (spot) {
+                    title.innerHTML = `<i class="fa-solid fa-pen-to-square text-orange-400"></i> Chỉnh Sửa Quán`;
+                    document.getElementById('spot-id').value = spot.id;
+                    document.getElementById('spot-name').value = spot.name;
+                    document.getElementById('spot-district').value = spot.district;
+                    document.getElementById('spot-category').value = spot.category;
+                    document.getElementById('spot-rating').value = spot.rating;
+                    document.getElementById('spot-price').value = spot.price;
+                    document.getElementById('spot-maps').value = spot.maps || '';
+                    document.getElementById('spot-notes').value = spot.notes || '';
+                    selectEmoji(spot.emoji || '🍜');
+                }
+            } else {
+                title.innerHTML = `<i class="fa-solid fa-square-plus text-orange-400"></i> Thêm Quán Mới`;
+                selectEmoji('🍜');
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeSpotModal() {
+            document.getElementById('modal-spot').classList.add('hidden');
+        }
+
+        function saveSpotForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('spot-id').value;
+            const name = document.getElementById('spot-name').value.trim();
+            const emoji = document.getElementById('spot-emoji').value || '🍜';
+            const district = document.getElementById('spot-district').value.trim();
+            const category = document.getElementById('spot-category').value;
+            const rating = parseFloat(document.getElementById('spot-rating').value) || 4.5;
+            const price = document.getElementById('spot-price').value;
+            const maps = document.getElementById('spot-maps').value.trim();
+            const notes = document.getElementById('spot-notes').value.trim();
+
+            if (id) {
+                const index = spots.findIndex(s => s.id === id);
+                if (index !== -1) {
+                    spots[index] = { id, name, emoji, district, category, rating, price, maps, notes };
+                    showToast('Đã cập nhật thông tin thành công!');
+                }
+            } else {
+                const newSpot = {
+                    id: Date.now().toString(),
+                    name, emoji, district, category, rating, price, maps, notes
+                };
+                spots.unshift(newSpot);
+                showToast('Đã thêm quán mới vào phòng!');
+            }
+
+            saveSpotsData();
+            populateDistrictDropdowns();
+            applyFilters();
+            closeSpotModal();
+        }
+
+        function deleteSpot(id) {
+            const index = spots.findIndex(s => s.id === id);
+            if (index === -1) return;
+
+            spots.splice(index, 1);
+            saveSpotsData();
+            populateDistrictDropdowns();
+            applyFilters();
+            showToast('Đã xóa quán khỏi danh sách');
+        }
+
+        function openRandomModal() {
+            if (filteredSpots.length === 0) {
+                showToast('Danh sách hiện tại đang rỗng! Hãy đổi bộ lọc.', 'warning');
+                return;
+            }
+
+            const modal = document.getElementById('modal-random');
+            modal.classList.remove('hidden');
+            startFastSpinning();
+        }
+
+        function closeRandomModal() {
+            if (spinInterval) clearInterval(spinInterval);
+            document.getElementById('modal-random').classList.add('hidden');
+        }
+
+        // Fast Spin (0.35s total duration)
+        function startFastSpinning() {
+            if (filteredSpots.length === 0) return;
+
+            const tempEmoji = document.getElementById('picker-temp-emoji');
+            const tempName = document.getElementById('picker-temp-name');
+            const tempSub = document.getElementById('picker-temp-sub');
+            const btnStart = document.getElementById('btn-spin-start');
+            const resultActions = document.getElementById('picker-result-actions');
+
+            btnStart.classList.add('hidden');
+            resultActions.classList.add('hidden');
+
+            tempEmoji.classList.add('animate-fast-flash');
+            
+            let counter = 0;
+            const totalSpins = 5; // 5 flashes * 70ms = 350ms (0.35s)
+
+            spinInterval = setInterval(() => {
+                const randomIndex = Math.floor(Math.random() * filteredSpots.length);
+                const currentCandidate = filteredSpots[randomIndex];
+                
+                tempEmoji.textContent = currentCandidate.emoji || '🍜';
+                tempName.textContent = currentCandidate.name;
+                tempSub.textContent = `📍 ${currentCandidate.district} • ⭐ ${currentCandidate.rating}`;
+                
+                counter++;
+                if (counter >= totalSpins) {
+                    clearInterval(spinInterval);
+                    tempEmoji.classList.remove('animate-fast-flash');
+                    finishFastSpinning(currentCandidate);
+                }
+            }, 70);
+        }
+
+        function finishFastSpinning(winner) {
+            const tempEmoji = document.getElementById('picker-temp-emoji');
+            const tempName = document.getElementById('picker-temp-name');
+            const tempSub = document.getElementById('picker-temp-sub');
+            const btnMaps = document.getElementById('btn-winner-maps');
+            const resultActions = document.getElementById('picker-result-actions');
+
+            tempEmoji.textContent = winner.emoji || '🎉';
+            tempName.textContent = winner.name;
+            tempSub.textContent = `GỢI Ý HOÀN HẢO: ${winner.district} • ${winner.category} (⭐ ${winner.rating})`;
+
+            btnMaps.href = getSafeGoogleMapsUrl(winner);
+            resultActions.classList.remove('hidden');
+
+            // Quick celebration confetti
+            confetti({
+                particleCount: 60,
+                spread: 60,
+                origin: { y: 0.6 }
+            });
+        }
+
+        // Room & Share Link Functions
+        function openRoomModal() {
+            document.getElementById('modal-room').classList.remove('hidden');
+        }
+
+        function closeRoomModal() {
+            document.getElementById('modal-room').classList.add('hidden');
+        }
+
+        function changeRoomSubmit() {
+            const inputVal = document.getElementById('input-room-id').value.trim().toLowerCase();
+            if (!inputVal) return;
+
+            currentRoomId = inputVal;
+            updateRoomUI();
+            loadSpotsData();
+            populateDistrictDropdowns();
+            applyFilters();
+            setupBroadcastChannel();
+            closeRoomModal();
+
+            // Update URL query string
+            const newUrl = `${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
+            window.history.pushState({ path: newUrl }, '', newUrl);
+
+            showToast(`Đã chuyển sang phòng: ${currentRoomId}`);
+        }
+
+        function copyShareLink() {
+            const shareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
+            
+            // Safe copy fallback via textarea for iframe compatibility
+            const tempInput = document.createElement('textarea');
+            tempInput.value = shareUrl;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                showToast('📋 Đã sao chép link phòng! Gửi cho bạn bè ngay nhé.');
+            } catch (err) {
+                showToast('Không thể sao chép link tự động', 'error');
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(spots, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `hom-nay-an-gi-${currentRoomId}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('Đã xuất file sao lưu dữ liệu!');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedSpots = JSON.parse(e.target.result);
+                    if (Array.isArray(importedSpots) && importedSpots.length > 0) {
+                        spots = importedSpots;
+                        saveSpotsData();
+                        populateDistrictDropdowns();
+                        applyFilters();
+                        showToast(`Đã nhập thành công ${importedSpots.length} địa điểm!`);
+                    } else {
+                        showToast('File dữ liệu không hợp lệ', 'error');
+                    }
+                } catch(err) {
+                    showToast('Có lỗi xảy ra khi đọc file JSON', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function confirmResetDefaultData() {
+            spots = [...DEFAULT_SPOTS];
+            saveSpotsData();
+            populateDistrictDropdowns();
+            applyFilters();
+            showToast('Đã khôi phục dữ liệu mẫu ban đầu');
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgColor = type === 'error' ? 'bg-rose-600' : type === 'warning' ? 'bg-amber-500' : type === 'info' ? 'bg-blue-600' : 'bg-slate-900';
+            
+            toast.className = `${bgColor} text-white px-4 py-3 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 transform transition-all duration-300 translate-x-10 opacity-0`;
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-orange-400"></i>
+                <span>${message}</span>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-x-10', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-10');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
