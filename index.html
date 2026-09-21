@@ -39,7 +39,7 @@
             100% { opacity: 0.3; transform: scale(0.92); }
         }
         .animate-fast-flash { animation: fastFlash 0.07s infinite; }
-        .break-word-custom { overflow-wrap: anywhere; word-break: break-word; }
+        .break-word-custom { overflow-wrap: anywhere; word-break: break-word; hyphens: auto; }
         .hide-scroll::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -98,7 +98,7 @@
                 <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-snug">
                     Cùng Nhóm Bạn Ăn Ngon - Chọn Quán Trong Tích Tắc!
                 </h2>
-                <p class="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-xl">
+                <p class="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-xl break-word-custom">
                     Lưu danh sách quán tủ, đồng bộ tức thì với nhóm bạn qua Mã Phòng. Bấm nút quay ngẫu nhiên 0.35s để quyết định món ăn mỗi ngày!
                 </p>
                 
@@ -113,11 +113,12 @@
                     </div>
                 </div>
             </div>
-            <!-- Decorative image -->
-            <img src="https://placehold.co/200x200/111827/f97316?text=Bento" class="absolute -right-10 -bottom-10 opacity-20 w-64 h-64 object-cover rounded-xl transform rotate-12 blur-[2px]" alt="Bento" onerror="this.style.display='none'">
+            <!-- Decorative image (Fallback to Bento Emoji visually) -->
+            <div class="absolute -right-4 -bottom-4 opacity-20 text-[180px] transform rotate-12 blur-[1px] pointer-events-none select-none">
+                🍱
+            </div>
         </section>
 
-        <!-- Filters Section -->
         <section class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
             
             <div class="flex flex-col md:flex-row gap-3">
@@ -165,8 +166,8 @@
                     </select>
                 </div>
                 <div class="flex items-end">
-                    <button onclick="resetFilters()" class="w-full py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition flex items-center justify-center gap-1.5 h-[38px]">
-                        <i class="fa-solid fa-rotate-left text-xs"></i> Đặt lại bộ lọc
+                    <button onclick="resetFilters()" class="w-full py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition flex items-center justify-center gap-1.5 h-[38px] active:scale-95">
+                        <i class="fa-solid fa-rotate-left text-xs"></i> Đặt lại
                     </button>
                 </div>
             </div>
@@ -179,7 +180,7 @@
                     <span id="filtered-count" class="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 text-xs font-bold">0</span>
                 </h3>
                 <button onclick="openRandomModal()" class="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 transition">
-                    <i class="fa-solid fa-bolt text-amber-500"></i> Gợi ý nhanh danh sách này
+                    <i class="fa-solid fa-bolt text-amber-500"></i> Gợi ý danh sách này
                 </button>
             </div>
 
@@ -268,7 +269,7 @@
 
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1.5">Ghi chú (Tùy chọn)</label>
-                    <textarea id="input-notes" rows="2" placeholder="Món ngon nhất, lưu ý chỗ để xe..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-orange-500 outline-none"></textarea>
+                    <textarea id="input-notes" rows="2" placeholder="Món ngon nhất, lưu ý chỗ để xe..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-orange-500 outline-none break-word-custom"></textarea>
                 </div>
 
                 <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
@@ -288,14 +289,14 @@
             
             <div class="bg-slate-900 text-white p-6 rounded-2xl min-h-[160px] flex flex-col items-center justify-center border border-slate-800 shadow-inner mb-5">
                 <div id="rand-emoji" class="text-5xl mb-2 animate-bounce">🎲</div>
-                <div id="rand-name" class="text-lg font-bold text-amber-400 break-word-custom">Đang chọn...</div>
+                <div id="rand-name" class="text-lg font-bold text-amber-400 break-word-custom px-2">Đang chọn...</div>
                 <div id="rand-sub" class="text-xs text-slate-400 mt-1">Chỉ mất 0.35 giây</div>
             </div>
             
             <div class="space-y-2">
                 <button id="btn-spin" onclick="startSpin()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-sm shadow-lg active:scale-95 transition">CHỌN QUÁN NGAY!</button>
                 <div id="rand-actions" class="hidden flex flex-col gap-2">
-                    <a id="rand-maps" href="#" target="_blank" class="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md">
+                    <a id="rand-maps" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md">
                         <i class="fa-solid fa-map-location-dot"></i> Mở Google Maps
                     </a>
                     <button onclick="startSpin()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition">Đổi quán khác</button>
@@ -309,7 +310,7 @@
         <div class="bg-white w-full max-w-sm rounded-2xl shadow-xl p-5 relative">
             <button onclick="closeShareModal()" class="absolute right-4 top-4 text-slate-400 hover:bg-slate-100 w-8 h-8 rounded-full transition flex items-center justify-center">&times;</button>
             <h3 class="font-bold text-lg text-slate-900 mb-2 flex items-center gap-2"><i class="fa-solid fa-share-nodes text-orange-500"></i> Phòng Dùng Chung</h3>
-            <p class="text-xs text-slate-500 mb-4">Gửi link này cho bạn bè, dữ liệu sẽ tự động đồng bộ siêu tốc giữa tất cả mọi người.</p>
+            <p class="text-xs text-slate-500 mb-4 leading-relaxed">Gửi link này cho bạn bè, dữ liệu sẽ tự động đồng bộ siêu tốc giữa tất cả mọi người.</p>
             
             <div class="space-y-3">
                 <div>
@@ -317,9 +318,21 @@
                     <input type="text" id="share-room-input" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold text-sm outline-none focus:border-orange-500">
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="changeRoom()" class="flex-1 bg-slate-900 text-white text-xs font-bold py-2 rounded-lg hover:bg-slate-800 transition">Đổi Mã Phòng</button>
-                    <button onclick="copyShareLink()" class="flex-1 bg-orange-500 text-white text-xs font-bold py-2 rounded-lg hover:bg-orange-600 transition shadow-sm"><i class="fa-solid fa-copy"></i> Copy Link</button>
+                    <button onclick="changeRoom()" class="flex-1 bg-slate-900 text-white text-xs font-bold py-2.5 rounded-lg hover:bg-slate-800 transition active:scale-95">Đổi Phòng</button>
+                    <button id="btn-copy-link" onclick="copyShareLink()" class="flex-1 bg-orange-500 text-white text-xs font-bold py-2.5 rounded-lg hover:bg-orange-600 transition shadow-sm active:scale-95"><i class="fa-solid fa-copy"></i> Copy Link</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm/Message Modal -->
+    <div id="modal-alert" class="fixed inset-0 z-[60] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl shadow-xl p-5 text-center">
+            <div id="alert-icon" class="w-12 h-12 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center text-xl mx-auto mb-3"><i class="fa-solid fa-bell"></i></div>
+            <h3 id="alert-title" class="font-bold text-lg text-slate-900 mb-2">Thông báo</h3>
+            <p id="alert-message" class="text-sm text-slate-500 mb-5 break-words whitespace-pre-wrap">Nội dung</p>
+            <div id="alert-actions" class="flex gap-2 justify-center">
+                <button onclick="closeAlertModal()" class="flex-1 bg-slate-100 text-slate-700 font-bold py-2.5 rounded-xl hover:bg-slate-200 transition">Đóng</button>
             </div>
         </div>
     </div>
@@ -332,22 +345,25 @@
         let filteredPlaces = [];
         let spinInterval = null;
         
+        // Setup Room URL safely
         const urlParams = new URLSearchParams(window.location.search);
         let currentRoomId = urlParams.get('room') || 'nhom-foodie-pro';
+        let LOCAL_KEY = 'foodfinder_data_' + currentRoomId;
         
         try {
             if(!urlParams.get('room')) {
                 window.history.replaceState({}, '', `?room=${currentRoomId}`);
             }
         } catch(e) {
-            console.warn("Môi trường nhúng không cho phép đổi URL, hệ thống vẫn tiếp tục chạy bình thường.");
+            console.warn("Đang chạy trong môi trường preview/iframe. URL không thay đổi được.");
         }
         
+        // MQTT Config
         const brokerUrl = "broker.emqx.io";
         const brokerPort = 8084;
         let topic = `vn/foodfinder/room/${currentRoomId.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
         const clientId = "web_" + Math.random().toString(16).substr(2, 8);
-        const mqttClient = new Paho.Client(brokerUrl, brokerPort, clientId);
+        let mqttClient = null;
 
         window.onload = () => {
             initUI();
@@ -355,6 +371,12 @@
         };
 
         function initUI() {
+            // Load from LocalStorage first to ensure data exists even if MQTT fails
+            const localData = localStorage.getItem(LOCAL_KEY);
+            if(localData) {
+                try { places = JSON.parse(localData); } catch(e) {}
+            }
+            
             document.getElementById('text-room-name').textContent = currentRoomId;
             document.getElementById('banner-room-id').textContent = currentRoomId;
             document.getElementById('share-room-input').value = currentRoomId;
@@ -372,9 +394,37 @@
             const picker = document.getElementById('emoji-picker');
             picker.innerHTML = EMOJIS.map(e => `<span class="emoji-btn cursor-pointer w-9 h-9 flex items-center justify-center bg-white border-2 border-transparent rounded-lg text-lg hover:bg-orange-50 transition" onclick="selectEmoji('${e}')">${e}</span>`).join('');
             selectEmoji('🍜');
+            
+            applyFilters(); // Render immediately
         }
 
-        // --- MQTT SYNC LOGIC ---
+        // --- CUSTOM ALERTS & MODALS ---
+        function showAlert(title, message, isConfirm = false, onConfirm = null) {
+            document.getElementById('modal-alert').classList.remove('hidden');
+            document.getElementById('alert-title').textContent = title;
+            document.getElementById('alert-message').textContent = message;
+            
+            const actions = document.getElementById('alert-actions');
+            if (isConfirm) {
+                document.getElementById('alert-icon').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                document.getElementById('alert-icon').className = "w-12 h-12 rounded-full bg-rose-100 text-rose-500 flex items-center justify-center text-xl mx-auto mb-3";
+                actions.innerHTML = `
+                    <button onclick="closeAlertModal()" class="flex-1 bg-slate-100 text-slate-700 font-bold py-2.5 rounded-xl hover:bg-slate-200 transition">Hủy</button>
+                    <button id="btn-confirm-action" class="flex-1 bg-rose-600 text-white font-bold py-2.5 rounded-xl hover:bg-rose-700 transition shadow-md">Xác nhận Xóa</button>
+                `;
+                document.getElementById('btn-confirm-action').onclick = () => {
+                    if(onConfirm) onConfirm();
+                    closeAlertModal();
+                };
+            } else {
+                document.getElementById('alert-icon').innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+                document.getElementById('alert-icon').className = "w-12 h-12 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center text-xl mx-auto mb-3";
+                actions.innerHTML = `<button onclick="closeAlertModal()" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl hover:bg-slate-800 transition">Đã hiểu</button>`;
+            }
+        }
+
+        function closeAlertModal() { document.getElementById('modal-alert').classList.add('hidden'); }
+
         function setStatus(text, type) {
             const badge = document.getElementById('room-status-badge');
             const dot = document.getElementById('sync-dot');
@@ -391,46 +441,59 @@
 
         function connectMQTT() {
             setStatus('Đang kết nối...', 'warn');
-            mqttClient.connect({
-                useSSL: true,
-                onSuccess: () => {
-                    setStatus(currentRoomId, 'ok');
-                    mqttClient.subscribe(topic);
-                },
-                onFailure: (e) => {
-                    setStatus('Mất kết nối', 'error');
-                    setTimeout(connectMQTT, 3000);
-                }
-            });
-        }
-
-        mqttClient.onConnectionLost = (resp) => {
-            if (resp.errorCode !== 0) {
-                setStatus('Đang thử lại...', 'error');
-                setTimeout(connectMQTT, 3000);
-            }
-        };
-
-        mqttClient.onMessageArrived = (msg) => {
             try {
-                const data = JSON.parse(msg.payloadString);
-                if (Array.isArray(data)) {
-                    places = data;
-                    applyFilters();
-                }
-            } catch(e) { console.error(e); }
-        };
+                mqttClient = new Paho.Client(brokerUrl, brokerPort, clientId);
+                
+                mqttClient.onConnectionLost = (resp) => {
+                    if (resp.errorCode !== 0) {
+                        setStatus('Lưu Nội Bộ (Mất mạng)', 'error');
+                        setTimeout(connectMQTT, 5000);
+                    }
+                };
+
+                mqttClient.onMessageArrived = (msg) => {
+                    try {
+                        const data = JSON.parse(msg.payloadString);
+                        if (Array.isArray(data)) {
+                            places = data;
+                            localStorage.setItem(LOCAL_KEY, JSON.stringify(places));
+                            applyFilters();
+                        }
+                    } catch(e) { console.error(e); }
+                };
+
+                mqttClient.connect({
+                    useSSL: true,
+                    timeout: 3,
+                    onSuccess: () => {
+                        setStatus(currentRoomId, 'ok');
+                        mqttClient.subscribe(topic);
+                    },
+                    onFailure: (e) => {
+                        console.warn("MQTT Connection failed:", e);
+                        setStatus('Lưu Nội Bộ (Offline)', 'error');
+                    }
+                });
+            } catch (err) {
+                console.warn("Môi trường chặn WebSocket (Canvas). Chuyển sang LocalStorage.", err);
+                setStatus('Lưu Nội Bộ (Canvas)', 'error');
+            }
+        }
 
         function pushData() {
-            if(mqttClient.isConnected()) {
-                const message = new Paho.Message(JSON.stringify(places));
-                message.destinationName = topic;
-                message.retained = true;
-                mqttClient.send(message);
+            localStorage.setItem(LOCAL_KEY, JSON.stringify(places)); // Luôn lưu local
+            try {
+                if(mqttClient && mqttClient.isConnected()) {
+                    const message = new Paho.Message(JSON.stringify(places));
+                    message.destinationName = topic;
+                    message.retained = true;
+                    mqttClient.send(message);
+                }
+            } catch (err) {
+                console.warn("Lỗi khi gửi MQTT:", err);
             }
         }
 
-        // --- UI LOGIC ---
         function getPriceColor(p) {
             if(p === '<100k') return 'text-emerald-600';
             if(p === '100-250k') return 'text-blue-600';
@@ -480,39 +543,35 @@
 
             grid.innerHTML = filteredPlaces.map(p => `
                 <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full group relative">
-                    <!-- Top header -->
                     <div class="flex justify-between items-start mb-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-2xl border border-orange-100 group-hover:scale-105 transition">${p.emoji}</div>
-                            <div>
-                                <div class="text-[10px] font-bold text-orange-600 uppercase tracking-wide">${p.category}</div>
-                                <h4 class="font-extrabold text-sm sm:text-base text-slate-900 leading-tight mt-0.5 line-clamp-2 break-word-custom">${p.name}</h4>
+                        <div class="flex items-center gap-3 w-full pr-12">
+                            <div class="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-2xl border border-orange-100 group-hover:scale-105 transition shrink-0">${p.emoji}</div>
+                            <div class="min-w-0">
+                                <div class="text-[10px] font-bold text-orange-600 uppercase tracking-wide truncate">${p.category}</div>
+                                <h4 class="font-extrabold text-sm sm:text-base text-slate-900 leading-tight mt-0.5 break-word-custom">${p.name}</h4>
                             </div>
                         </div>
-                        <div class="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[11px] font-extrabold rounded-md flex items-center gap-0.5 border border-amber-100 shrink-0">
+                        <div class="absolute right-4 top-4 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[11px] font-extrabold rounded-md flex items-center gap-0.5 border border-amber-100 shrink-0">
                             ⭐ ${Number(p.rating).toFixed(1)}
                         </div>
                     </div>
                     
-                    <!-- Location & Price -->
-                    <div class="flex items-center gap-2 text-[11px] sm:text-xs font-semibold mt-1 mb-3">
-                        <span class="text-slate-500 truncate max-w-[140px]"><i class="fa-solid fa-location-dot text-orange-400 mr-1"></i>${p.district}</span>
-                        <span class="text-slate-300">•</span>
+                    <div class="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs font-semibold mt-1 mb-3">
+                        <span class="text-slate-500 break-word-custom"><i class="fa-solid fa-location-dot text-orange-400 mr-1"></i>${p.district}</span>
+                        <span class="text-slate-300 hidden sm:inline">•</span>
                         <span class="${getPriceColor(p.price)}">${p.price}</span>
                     </div>
                     
-                    <!-- Notes -->
-                    <p class="text-xs text-slate-500 italic flex-grow bg-slate-50 p-2.5 rounded-lg border border-slate-100 break-word-custom line-clamp-3">
+                    <p class="text-xs text-slate-500 italic flex-grow bg-slate-50 p-2.5 rounded-lg border border-slate-100 break-word-custom">
                         ${p.notes ? `"${p.notes}"` : 'Chưa có ghi chú.'}
                     </p>
                     
-                    <!-- Footer Buttons -->
                     <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
-                        <a href="${p.map}" target="_blank" class="flex-grow py-2 rounded-xl bg-orange-50 text-orange-700 text-xs font-bold flex justify-center items-center gap-1.5 hover:bg-orange-100 transition">
+                        <a href="${p.map}" target="_blank" rel="noopener noreferrer" class="flex-grow py-2 rounded-xl bg-orange-50 text-orange-700 text-xs font-bold flex justify-center items-center gap-1.5 hover:bg-orange-100 transition active:scale-95">
                             <i class="fa-solid fa-map-location-dot"></i> Mở Bản Đồ
                         </a>
-                        <button onclick="openSpotModal('${p.id}')" class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen-to-square"></i></button>
-                        <button onclick="deleteSpot('${p.id}')" class="w-8 h-8 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition"><i class="fa-solid fa-trash-can"></i></button>
+                        <button onclick="openSpotModal('${p.id}')" class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition shrink-0"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="promptDeleteSpot('${p.id}')" class="w-8 h-8 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition shrink-0"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 </div>
             `).join('');
@@ -532,7 +591,6 @@
             applyFilters();
         }
 
-        // --- FORM HANDLING ---
         function selectEmoji(e) {
             document.getElementById('input-emoji').value = e;
             document.querySelectorAll('.emoji-btn').forEach(btn => {
@@ -589,22 +647,24 @@
                 places.unshift(newSpot);
             }
             
-            pushData();
+            pushData(); 
             applyFilters();
             closeSpotModal();
         }
 
-        function deleteSpot(id) {
-            if(confirm("Bạn có chắc muốn xóa quán này? Hành động này sẽ xóa đồng thời trên tất cả thiết bị của nhóm.")) {
+        function promptDeleteSpot(id) {
+            showAlert("Xác nhận xóa", "Bạn có chắc muốn xóa quán này? Dữ liệu sẽ mất trên mọi thiết bị.", true, () => {
                 places = places.filter(x => x.id !== id);
                 pushData();
                 applyFilters();
-            }
+            });
         }
 
-        // --- RANDOMIZER ---
         function openRandomModal() {
-            if(filteredPlaces.length === 0) return alert('Không có quán nào để quay! Hãy điều chỉnh bộ lọc.');
+            if(filteredPlaces.length === 0) {
+                showAlert("Không có dữ liệu", "Không có quán nào phù hợp với bộ lọc hiện tại để quay ngẫu nhiên.");
+                return;
+            }
             document.getElementById('modal-random').classList.remove('hidden');
             startSpin();
         }
@@ -639,12 +699,13 @@
                     subEl.textContent = `📍 ${r.district} • Giá: ${r.price}`;
                     document.getElementById('rand-maps').href = r.map;
                     document.getElementById('rand-actions').classList.remove('hidden');
-                    confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+                    if (typeof confetti === 'function') {
+                        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+                    }
                 }
             }, 60);
         }
 
-        // --- SHARE & ROOM ---
         function openShareModal() { document.getElementById('modal-share').classList.remove('hidden'); }
         function closeShareModal() { document.getElementById('modal-share').classList.add('hidden'); }
         
@@ -653,25 +714,26 @@
             if(!val) return;
             
             currentRoomId = val;
+            LOCAL_KEY = 'foodfinder_data_' + currentRoomId;
             
-            // Thử đổi URL, nếu bị chặn thì bỏ qua
             try {
                 window.history.replaceState({}, '', '?room=' + encodeURIComponent(val));
             } catch(e) {
-                console.warn("Không thể đổi URL trong môi trường này.");
+                console.warn("Môi trường nhúng không cho đổi URL.");
             }
             
-            // Cập nhật lại topic và giao diện
             topic = `vn/foodfinder/room/${currentRoomId.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
-            places = []; // Xoá dữ liệu phòng cũ
+            
+            // Clear and load new room local data
+            const localData = localStorage.getItem(LOCAL_KEY);
+            places = localData ? JSON.parse(localData) : [];
             applyFilters();
             
-            // Kết nối lại MQTT vào phòng mới
-            if (mqttClient.isConnected()) {
+            if (mqttClient && mqttClient.isConnected()) {
                 mqttClient.disconnect();
             }
+            
             setTimeout(() => {
-                initUI();
                 connectMQTT();
             }, 500);
             
@@ -681,17 +743,23 @@
         function copyShareLink() {
             let baseUrl = window.location.origin + window.location.pathname;
             
-            // Nếu đang chạy trong môi trường xem trước (blob), dùng link GitHub làm mặc định
-            if (baseUrl.startsWith('blob:') || baseUrl === 'null') {
+            if (baseUrl.startsWith('blob:') || baseUrl === 'null' || baseUrl === 'file://') {
                 baseUrl = 'https://tulehaianhwork-dotcom.github.io/Hom-nay-an-gi/'; 
             }
             
             const link = baseUrl + '?room=' + encodeURIComponent(currentRoomId);
             
             navigator.clipboard.writeText(link).then(() => {
-                alert("Đã copy link thành công! Gửi ngay cho bạn bè.");
+                const btn = document.getElementById('btn-copy-link');
+                const oldHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Đã Copy!';
+                btn.classList.replace('bg-orange-500', 'bg-emerald-500');
+                setTimeout(() => {
+                    btn.innerHTML = oldHtml;
+                    btn.classList.replace('bg-emerald-500', 'bg-orange-500');
+                }, 2000);
             }).catch(() => {
-                alert("Lỗi copy tự động. Vui lòng copy thủ công link sau:\n\n" + link);
+                showAlert("Copy thủ công", "Trình duyệt không cho phép copy tự động. Link của phòng bạn là:\n\n" + link);
             });
         }
     </script>
