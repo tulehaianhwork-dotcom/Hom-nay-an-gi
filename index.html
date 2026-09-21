@@ -332,10 +332,16 @@
         let filteredPlaces = [];
         let spinInterval = null;
         
-        // MQTT Setup
         const urlParams = new URLSearchParams(window.location.search);
         let currentRoomId = urlParams.get('room') || 'nhom-foodie-pro';
-        if(!urlParams.get('room')) window.history.replaceState({}, '', `?room=${currentRoomId}`);
+        
+        try {
+            if(!urlParams.get('room')) {
+                window.history.replaceState({}, '', `?room=${currentRoomId}`);
+            }
+        } catch(e) {
+            console.warn("Môi trường nhúng không cho phép đổi URL, hệ thống vẫn tiếp tục chạy bình thường.");
+        }
         
         const brokerUrl = "broker.emqx.io";
         const brokerPort = 8084;
@@ -645,12 +651,48 @@
         function changeRoom() {
             const val = document.getElementById('share-room-input').value.trim();
             if(!val) return;
-            window.location.href = window.location.pathname + '?room=' + encodeURIComponent(val);
+            
+            currentRoomId = val;
+            
+            // Thử đổi URL, nếu bị chặn thì bỏ qua
+            try {
+                window.history.replaceState({}, '', '?room=' + encodeURIComponent(val));
+            } catch(e) {
+                console.warn("Không thể đổi URL trong môi trường này.");
+            }
+            
+            // Cập nhật lại topic và giao diện
+            topic = `vn/foodfinder/room/${currentRoomId.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+            places = []; // Xoá dữ liệu phòng cũ
+            applyFilters();
+            
+            // Kết nối lại MQTT vào phòng mới
+            if (mqttClient.isConnected()) {
+                mqttClient.disconnect();
+            }
+            setTimeout(() => {
+                initUI();
+                connectMQTT();
+            }, 500);
+            
+            closeShareModal();
         }
 
         function copyShareLink() {
-            const link = window.location.origin + window.location.pathname + '?room=' + encodeURIComponent(currentRoomId);
-            navigator.clipboard.writeText(link).then(() => alert("Đã copy link thành công! Gửi ngay cho bạn bè.")).catch(() => alert("Lỗi copy. Vui lòng copy thủ công trên thanh địa chỉ."));
+            let baseUrl = window.location.origin + window.location.pathname;
+            
+            // Nếu đang chạy trong môi trường xem trước (blob), dùng link GitHub làm mặc định
+            if (baseUrl.startsWith('blob:') || baseUrl === 'null') {
+                baseUrl = 'https://tulehaianhwork-dotcom.github.io/Hom-nay-an-gi/'; 
+            }
+            
+            const link = baseUrl + '?room=' + encodeURIComponent(currentRoomId);
+            
+            navigator.clipboard.writeText(link).then(() => {
+                alert("Đã copy link thành công! Gửi ngay cho bạn bè.");
+            }).catch(() => {
+                alert("Lỗi copy tự động. Vui lòng copy thủ công link sau:\n\n" + link);
+            });
         }
     </script>
 </body>
