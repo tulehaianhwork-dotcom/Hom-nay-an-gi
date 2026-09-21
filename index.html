@@ -3,1156 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hôm Nay Ăn Gì & Cà Phê Ở Đâu? - Food & Cafe Finder</title>
-    
-    <!-- Tailwind CSS CDN -->
+    <title>Hôm Nay Ăn Gì? - Nhóm Foodie</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#fff7ed',
-                            100: '#ffedd5',
-                            500: '#f97316',
-                            600: '#ea580c',
-                            700: '#c2410c',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Be Vietnam Pro', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Font: Be Vietnam Pro -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Canvas Confetti Library -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
+    <!-- Thư viện MQTT để đồng bộ Real-time siêu tốc -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Be Vietnam Pro', sans-serif;
-            background-color: #f8fafc;
-            overflow-x: hidden;
-        }
-        
-        /* Smooth Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 99px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        /* Fast Spin Keyframes */
-        @keyframes fastFlash {
-            0% { opacity: 0.3; transform: scale(0.92); }
-            50% { opacity: 1; transform: scale(1.08); }
-            100% { opacity: 0.3; transform: scale(0.92); }
-        }
-        .animate-fast-flash {
-            animation: fastFlash 0.07s infinite;
-        }
-        
-        .break-word-custom {
-            overflow-wrap: anywhere;
-            word-break: break-word;
-        }
+        body { font-family: 'Quicksand', sans-serif; background-color: #f3f4f6; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="text-slate-800 flex flex-col min-h-screen">
+<body class="text-gray-800 pb-20">
 
-    <!-- Top Navigation Header -->
-    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
-        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-white shadow-md shadow-orange-500/20 text-lg sm:text-xl flex-shrink-0">
-                    🍜
-                </div>
-                <div class="min-w-0 flex-1">
-                    <h1 class="font-extrabold text-sm sm:text-lg text-slate-900 leading-tight truncate">Hôm Nay Ăn Gì?</h1>
-                    <div class="flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-500 font-medium truncate">
-                        <span id="badge-room-status" class="inline-flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 px-1.5 sm:px-2 py-0.5 rounded-md border border-emerald-200/60 cursor-pointer truncate" onclick="openRoomModal()">
-                            <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
-                            <span id="text-room-name" class="truncate">nhom-foodie-pro</span>
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons Header -->
-            <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                <button onclick="syncFromCloud(true)" title="Làm mới dữ liệu từ phòng" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition border border-slate-200 flex items-center gap-1 active:scale-95">
-                    <i id="icon-sync-btn" class="fa-solid fa-rotate text-xs"></i>
-                    <span class="hidden lg:inline">Cập nhật</span>
-                </button>
-
-                <button onclick="openShareModal()" title="Chia sẻ link phòng" class="px-2.5 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold text-xs transition border border-orange-200/60 flex items-center gap-1.5 active:scale-95">
-                    <i class="fa-solid fa-share-nodes text-xs sm:text-sm"></i>
-                    <span class="hidden sm:inline">Chia Sẻ Link</span>
-                </button>
-
-                <button onclick="openRandomModal()" class="px-2.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-500/25 transition-all duration-200 active:scale-95 flex items-center gap-1.5">
-                    <i class="fa-solid fa-bolt text-amber-200 text-xs"></i>
-                    <span class="hidden xs:inline">Gợi Ý 0.35s</span>
-                </button>
-
-                <button onclick="openSpotModal()" class="px-2.5 sm:px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm transition-all duration-200 active:scale-95 flex items-center gap-1.5">
-                    <i class="fa-solid fa-plus text-xs"></i>
-                    <span class="hidden md:inline">Thêm Quán</span>
-                </button>
+    <!-- Header & Room Info -->
+    <div class="bg-white shadow-sm p-4 sticky top-0 z-10">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold text-orange-600">🍕 Hôm Nay Ăn Gì?</h1>
+            <div id="sync-status" class="text-xs font-bold text-yellow-500 bg-yellow-100 px-2 py-1 rounded-full animate-pulse">
+                ⏳ Đang kết nối...
             </div>
         </div>
-    </header>
+        <div class="max-w-md mx-auto mt-3 flex gap-2">
+            <button onclick="copyRoomLink()" class="flex-1 bg-blue-100 text-blue-600 py-2 rounded-lg font-bold text-sm shadow-sm active:scale-95 transition">
+                🔗 Copy Link Phòng Chung
+            </button>
+        </div>
+    </div>
 
-    <!-- Main Content Area -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
-
-        <!-- Banner Hero Intro -->
-        <section class="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-slate-900 via-orange-950 to-slate-900 text-white p-4 sm:p-8 shadow-xl">
-            <div class="absolute -right-6 -bottom-6 opacity-10 text-7xl sm:text-9xl pointer-events-none select-none">
-                🍱
+    <!-- Main Content -->
+    <div class="max-w-md mx-auto p-4 space-y-4">
+        
+        <!-- Randomizer -->
+        <div class="bg-gradient-to-r from-orange-400 to-red-500 p-5 rounded-2xl shadow-lg text-center text-white">
+            <h2 class="text-lg font-bold mb-3">Bạn không biết ăn gì?</h2>
+            <div id="random-result" class="text-2xl font-bold mb-4 min-h-[40px] flex items-center justify-center break-words">
+                Bấm nút để random!
             </div>
-            <div class="relative z-10 max-w-2xl space-y-2.5 sm:space-y-3">
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                        <i class="fa-solid fa-bolt text-amber-400"></i> Gợi Ý Ngẫu Nhiên
-                    </span>
-                    <button onclick="openRoomModal()" class="inline-flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition truncate max-w-[220px]">
-                        <i class="fa-solid fa-users text-orange-400 flex-shrink-0"></i> Mã phòng: <span id="text-room-banner" class="font-bold text-white truncate">nhom-foodie-pro</span>
-                    </button>
-                </div>
+            <button onclick="spinRandom()" class="bg-white text-orange-600 px-6 py-3 rounded-full font-bold shadow-md w-full active:scale-95 transition text-lg">
+                🎲 Chọn Ngẫu Nhiên
+            </button>
+        </div>
 
-                <h2 class="text-xl sm:text-3xl font-extrabold tracking-tight leading-snug">Cùng Nhóm Bạn Ăn Ngon - Chọn Quán Trong Tích Tắc!</h2>
-                <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                    Lưu danh sách quán tủ, tự động đồng bộ nhóm qua Mã Phòng. Bấm nút quay 0.35s để chọn món ngay lập tức!
-                </p>
-                
-                <!-- Quick Stats -->
-                <div class="pt-1 flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-slate-300">
-                    <div class="flex items-center gap-1.5">
-                        <i class="fa-solid fa-store text-orange-400"></i>
-                        <span>Đã lưu: <strong id="stat-total-count" class="text-white font-bold">0</strong> quán</span>
-                    </div>
-                    <div class="w-1 h-1 rounded-full bg-slate-600"></div>
-                    <div class="flex items-center gap-1.5">
-                        <i class="fa-solid fa-location-dot text-amber-400"></i>
-                        <span>Khu vực: <strong id="stat-district-count" class="text-white font-bold">0</strong> quận</span>
-                    </div>
-                </div>
+        <!-- Filter -->
+        <div class="flex gap-2 overflow-x-auto hide-scroll py-1">
+            <select id="filter-price" onchange="renderList()" class="bg-white border p-2 rounded-lg text-sm font-bold shadow-sm outline-none">
+                <option value="all">Mọi mức giá</option>
+                <option value="<100k">&lt;100k</option>
+                <option value="100-250k">100-250k</option>
+                <option value=">250k">&gt;250k</option>
+            </select>
+        </div>
+
+        <!-- List -->
+        <div id="places-list" class="space-y-3">
+            <!-- Items render here -->
+        </div>
+    </div>
+
+    <!-- Floating Add Button -->
+    <button onclick="toggleModal(true)" class="fixed bottom-6 right-6 bg-orange-500 text-white w-14 h-14 rounded-full shadow-lg text-3xl flex items-center justify-center active:scale-95 transition z-20">
+        +
+    </button>
+
+    <!-- Add Modal -->
+    <div id="add-modal" class="fixed inset-0 bg-black/60 z-30 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b font-bold text-lg flex justify-between items-center">
+                <h3>Thêm Quán Mới</h3>
+                <button onclick="toggleModal(false)" class="text-gray-400 text-2xl">&times;</button>
             </div>
-        </section>
-
-        <!-- Search & Filter Controls -->
-        <section class="bg-white p-3.5 sm:p-5 rounded-2xl shadow-sm border border-slate-200/80 space-y-3 sm:space-y-4">
             
-            <!-- Search Bar + Sorting -->
-            <div class="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
-                <div class="relative flex-grow">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm"></i>
-                    <input type="text" id="input-search" oninput="applyFilters()" placeholder="Tìm tên quán, món ăn, quận..." 
-                        class="w-full pl-9 pr-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-xs sm:text-sm transition-all">
+            <div class="p-4 overflow-y-auto space-y-4">
+                <div>
+                    <label class="block text-sm font-bold mb-1">Chọn Icon Món:</label>
+                    <div class="flex flex-wrap gap-2 text-2xl" id="emoji-picker">
+                        <span class="cursor-pointer p-2 bg-gray-100 rounded-lg border-2 border-transparent" onclick="selectEmoji(this, '🍜')">🍜</span>
+                        <span class="cursor-pointer p-2 bg-gray-100 rounded-lg border-2 border-transparent" onclick="selectEmoji(this, '🍚')">🍚</span>
+                        <span class="cursor-pointer p-2 bg-gray-100 rounded-lg border-2 border-transparent" onclick="selectEmoji(this, '☕')">☕</span>
+                        <span class="cursor-pointer p-2 bg-gray-100 rounded-lg border-2 border-transparent" onclick="selectEmoji(this, '🧋')">🧋</span>
+                        <span class="cursor-pointer p-2 bg-gray-100 rounded-lg border-2 border-transparent" onclick="selectEmoji(this, '🥩')">🥩</span>
+                        <span class="cursor-pointer p-2 bg-gray-100 rounded-lg border-2 border-transparent" onclick="selectEmoji(this, '🍔')">🍔</span>
+                    </div>
                 </div>
                 
-                <!-- Sort Selector -->
-                <div class="sm:w-52 flex-shrink-0">
-                    <select id="select-sort" onchange="applyFilters()" class="w-full px-3 py-2 sm:py-2.5 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-slate-700 font-medium">
-                        <option value="rating-desc">⭐ Đánh giá (Cao -> Thấp)</option>
-                        <option value="rating-asc">⭐ Đánh giá (Thấp -> Cao)</option>
-                        <option value="name-asc">🔤 Tên A-Z</option>
-                        <option value="price-asc">💵 Giá rẻ trước (&lt;100k)</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Filter Dropdowns Grid -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-1 border-t border-slate-100">
-                <!-- District Filter -->
-                <div>
-                    <label class="block text-[11px] font-semibold text-slate-500 mb-0.5">Quận / Khu vực</label>
-                    <select id="filter-district" onchange="applyFilters()" class="w-full px-2.5 py-1.5 sm:py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-orange-500 text-slate-700 truncate">
-                        <option value="">Tất cả Quận</option>
-                    </select>
-                </div>
-
-                <!-- Category Filter -->
-                <div>
-                    <label class="block text-[11px] font-semibold text-slate-500 mb-0.5">Loại hình / Món ăn</label>
-                    <select id="filter-category" onchange="applyFilters()" class="w-full px-2.5 py-1.5 sm:py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-orange-500 text-slate-700 truncate">
-                        <option value="">Tất cả Thể Loại</option>
-                        <option value="Cơm">🍚 Cơm</option>
-                        <option value="Bún / Phở">🍜 Bún / Phở / Mỳ</option>
-                        <option value="Lẩu & Nướng">🍲 Lẩu & Nướng</option>
-                        <option value="Cafe Chill">☕ Cafe Chill</option>
-                        <option value="Cafe Làm việc">💻 Cafe Làm Việc</option>
-                        <option value="Trà Sữa / Ăn Vặt">🧋 Trà Sữa / Ăn Vặt</option>
-                        <option value="Nhậu / Bia">🍻 Món Nhậu / Bia</option>
-                        <option value="Khác">✨ Khác</option>
-                    </select>
-                </div>
-
-                <!-- Price Filter -->
-                <div>
-                    <label class="block text-[11px] font-semibold text-slate-500 mb-0.5">Mức giá</label>
-                    <select id="filter-price" onchange="applyFilters()" class="w-full px-2.5 py-1.5 sm:py-2 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:border-orange-500 text-slate-700 truncate">
-                        <option value="">Tất cả mức giá</option>
-                        <option value="<100k">&lt;100k (Bình dân)</option>
-                        <option value="100-250k">100-250k (Vừa túi)</option>
-                        <option value=">250k">&gt;250k (Nướng/Lẩu/Sang)</option>
-                    </select>
-                </div>
-
-                <!-- Reset Filters Button -->
-                <div class="col-span-2 sm:col-span-1 flex items-end">
-                    <button onclick="resetFilters()" class="w-full py-1.5 sm:py-2 px-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-600 transition-colors flex items-center justify-center gap-1.5 h-[34px] sm:h-[38px]">
-                        <i class="fa-solid fa-rotate-left text-xs"></i> Đặt lại bộ lọc
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Spots Grid Container -->
-        <section>
-            <!-- Active filter counter headline -->
-            <div class="flex items-center justify-between mb-3 px-1">
-                <h3 class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
-                    <span>Danh sách địa điểm</span>
-                    <span id="filtered-count-badge" class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">0</span>
-                </h3>
-
-                <button onclick="openRandomModal()" class="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1">
-                    <i class="fa-solid fa-bolt text-amber-500"></i> Gợi ý nhanh
-                </button>
-            </div>
-
-            <!-- Cards Grid -->
-            <div id="spots-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
-                <!-- Cards dynamically populated -->
-            </div>
-
-            <!-- Empty State Display -->
-            <div id="empty-state" class="hidden py-12 text-center space-y-3 bg-white rounded-2xl border border-dashed border-slate-300 px-4">
-                <div class="w-14 h-14 bg-orange-50 rounded-full flex items-center justify-center mx-auto text-2xl">
-                    🔍
-                </div>
-                <div class="space-y-1">
-                    <p class="text-sm sm:text-base font-bold text-slate-800">Không tìm thấy quán nào phù hợp!</p>
-                    <p class="text-xs text-slate-500 max-w-xs mx-auto">Thử thay đổi từ khóa, chọn lại quận/mức giá hoặc thêm địa điểm mới.</p>
-                </div>
-                <button onclick="resetFilters()" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition">
-                    Xóa tất cả bộ lọc
-                </button>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- Mobile Floating Random Button -->
-    <div class="fixed bottom-5 right-4 sm:hidden z-20">
-        <button onclick="openRandomModal()" class="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white shadow-xl shadow-orange-500/40 flex items-center justify-center text-xl active:scale-95 transition">
-            <i class="fa-solid fa-bolt"></i>
-        </button>
-    </div>
-
-    <!-- Footer Area -->
-    <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-slate-500 text-xs">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-            <div class="flex items-center gap-2">
-                <span>❤️ Cùng bạn khám phá thế giới ẩm thực mỗi ngày</span>
+                <input type="text" id="input-name" placeholder="Tên quán (VD: Bún chả Đắc Kim)" class="w-full border p-3 rounded-lg outline-none text-sm focus:border-orange-500">
+                <input type="text" id="input-district" placeholder="Khu vực / Quận" class="w-full border p-3 rounded-lg outline-none text-sm focus:border-orange-500">
+                
+                <select id="input-price" class="w-full border p-3 rounded-lg outline-none text-sm focus:border-orange-500">
+                    <option value="<100k">&lt;100k (Rẻ)</option>
+                    <option value="100-250k">100 - 250k (Vừa)</option>
+                    <option value=">250k">&gt;250k (Cao cấp)</option>
+                </select>
+                
+                <input type="text" id="input-map" placeholder="Link Google Maps (Bắt buộc)" class="w-full border p-3 rounded-lg outline-none text-sm focus:border-orange-500">
             </div>
             
-            <div class="flex flex-wrap items-center justify-center gap-3 text-[11px] sm:text-xs">
-                <button onclick="exportData()" class="hover:text-slate-800 flex items-center gap-1 transition">
-                    <i class="fa-solid fa-download"></i> Xuất dữ liệu
-                </button>
-                <span>•</span>
-                <label class="hover:text-slate-800 cursor-pointer flex items-center gap-1 transition">
-                    <i class="fa-solid fa-upload"></i> Nhập dữ liệu
-                    <input type="file" id="file-import" accept=".json" class="hidden" onchange="importData(event)">
-                </label>
-                <span>•</span>
-                <button onclick="confirmResetDefaultData()" class="hover:text-rose-600 flex items-center gap-1 transition">
-                    <i class="fa-solid fa-rotate-left"></i> Khôi phục mẫu
+            <div class="p-4 border-t">
+                <button onclick="savePlace()" class="w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition">
+                    Lưu Quán & Chia sẻ lên mây
                 </button>
             </div>
         </div>
-    </footer>
-
-    <!-- Modal: Add or Edit Spot -->
-    <div id="modal-spot" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4">
-        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden my-auto">
-            
-            <div class="px-4 sm:px-5 py-3 bg-slate-900 text-white flex items-center justify-between flex-shrink-0">
-                <h3 id="modal-spot-title" class="font-bold text-sm sm:text-base flex items-center gap-2">
-                    <i class="fa-solid fa-square-plus text-orange-400"></i> Thêm Quán Mới
-                </h3>
-                <button onclick="closeSpotModal()" class="text-slate-400 hover:text-white transition text-lg w-8 h-8 flex items-center justify-center rounded-lg">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <form id="form-spot" onsubmit="saveSpotForm(event)" class="p-4 sm:p-5 space-y-3.5 overflow-y-auto flex-1 text-left">
-                <input type="hidden" id="spot-id">
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Tên quán <span class="text-rose-500">*</span></label>
-                    <input type="text" id="spot-name" required placeholder="Ví dụ: Phở Thìn Lò Đúc, Cà Phê Giảng..." 
-                        class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Chọn Icon / Biểu tượng <span class="text-rose-500">*</span></label>
-                    <div id="emoji-picker-container" class="grid grid-cols-6 sm:grid-cols-9 gap-1 p-1.5 bg-slate-50 border border-slate-200 rounded-xl max-h-28 overflow-y-auto">
-                        <!-- Emoji options dynamically rendered -->
-                    </div>
-                    <input type="hidden" id="spot-emoji" value="🍜" required>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2.5">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Quận / Khu vực <span class="text-rose-500">*</span></label>
-                        <input type="text" id="spot-district" required placeholder="Ví dụ: Quận 1, Cầu Giấy..." list="district-suggestions"
-                            class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none">
-                        <datalist id="district-suggestions"></datalist>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Loại hình <span class="text-rose-500">*</span></label>
-                        <select id="spot-category" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white">
-                            <option value="Cơm">🍚 Cơm</option>
-                            <option value="Bún / Phở">🍜 Bún / Phở / Mỳ</option>
-                            <option value="Lẩu & Nướng">🍲 Lẩu & Nướng</option>
-                            <option value="Cafe Chill">☕ Cafe Chill</option>
-                            <option value="Cafe Làm việc">💻 Cafe Làm Việc</option>
-                            <option value="Trà Sữa / Ăn Vặt">🧋 Trà Sữa / Ăn Vặt</option>
-                            <option value="Nhậu / Bia">🍻 Món Nhậu / Bia</option>
-                            <option value="Khác">✨ Khác</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2.5">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Đánh giá Google Maps (⭐)</label>
-                        <input type="number" id="spot-rating" step="0.1" min="1" max="5" value="4.5" 
-                            class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Mức giá <span class="text-rose-500">*</span></label>
-                        <select id="spot-price" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none bg-white font-medium">
-                            <option value="<100k">&lt;100k (Bình dân / Ăn vặt)</option>
-                            <option value="100-250k">100-250k (Vừa túi tiền)</option>
-                            <option value=">250k">&gt;250k (Lẩu nướng / Sang)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Link Google Maps (Tùy chọn)</label>
-                    <input type="url" id="spot-maps" placeholder="Dán link Maps hoặc bỏ trống để tự tạo link tìm kiếm" 
-                        class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Ghi chú (Món ngon, lưu ý...)</label>
-                    <textarea id="spot-notes" rows="2" placeholder="Ví dụ: Phở tái lăn nhiều hành, quẩy giòn rum. Đi buổi sáng..." 
-                        class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none"></textarea>
-                </div>
-
-                <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
-                    <button type="button" onclick="closeSpotModal()" class="px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50 transition">
-                        Hủy
-                    </button>
-                    <button type="submit" class="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 transition">
-                        Lưu Địa Điểm
-                    </button>
-                </div>
-            </form>
-        </div>
     </div>
-
-    <!-- Modal: Fast Random Picker -->
-    <div id="modal-random" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 text-center p-5 sm:p-6 space-y-4 relative">
-            
-            <button onclick="closeRandomModal()" class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition text-lg w-8 h-8 flex items-center justify-center rounded-full bg-slate-100">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-
-            <div class="space-y-1">
-                <span class="inline-block px-3 py-0.5 rounded-full bg-orange-100 text-orange-600 font-bold text-xs">
-                    ⚡ Đề Xuất Siêu Tốc (0.35s)
-                </span>
-                <h3 class="font-extrabold text-lg sm:text-xl text-slate-900">Hôm Nay Ăn Quán Này!</h3>
-            </div>
-
-            <!-- Result Display Box -->
-            <div class="bg-slate-900 text-white p-5 rounded-2xl min-h-[140px] flex flex-col items-center justify-center relative overflow-hidden border-2 border-orange-500/50 shadow-inner">
-                <div id="picker-animation-box" class="space-y-1.5 w-full">
-                    <div id="picker-temp-emoji" class="text-4xl sm:text-5xl my-1 animate-bounce">
-                        🎲
-                    </div>
-                    <div id="picker-temp-name" class="text-lg sm:text-xl font-extrabold text-amber-400 tracking-wide line-clamp-1 break-word-custom">
-                        Đang chọn cho bạn...
-                    </div>
-                    <div id="picker-temp-sub" class="text-xs text-slate-400 break-word-custom">
-                        Chỉ mất 0.35 giây!
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Controls -->
-            <div class="space-y-2 pt-1">
-                <button id="btn-spin-start" onclick="startFastSpinning()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-orange-500/30 transition active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-bolt"></i> CHỌN QUÁN NGAY!
-                </button>
-
-                <div id="picker-result-actions" class="hidden flex flex-col gap-2">
-                    <a id="btn-winner-maps" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-map-location-dot"></i> Mở Google Maps Dẫn Đường
-                    </a>
-                    <button onclick="startFastSpinning()" class="w-full py-2 rounded-2xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-rotate"></i> Đổi quán khác
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Share Room Popup -->
-    <div id="modal-share" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 p-5 space-y-4 relative text-left">
-            <button onclick="closeShareModal()" class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition text-lg w-8 h-8 flex items-center justify-center rounded-full bg-slate-100">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-
-            <div class="flex items-center gap-2 text-slate-900">
-                <i class="fa-solid fa-share-nodes text-orange-500 text-xl"></i>
-                <h3 class="font-bold text-base">Chia Sẻ Link Phòng Dùng Chung</h3>
-            </div>
-
-            <p class="text-xs text-slate-500 leading-relaxed">
-                Gửi link này cho nhóm bạn. Bất kỳ ai mở link này đều sẽ kết nối chung phòng <strong id="share-modal-room-name" class="text-orange-600 font-bold">nhom-foodie-pro</strong> và tự động cập nhật danh sách quán!
-            </p>
-
-            <div class="space-y-2">
-                <label class="block text-[11px] font-semibold text-slate-600">Đường link truy cập phòng:</label>
-                <div class="flex items-center gap-2">
-                    <input type="text" id="input-share-url" readonly onclick="this.select()" 
-                        class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 text-xs font-mono text-slate-800 outline-none">
-                    <button onclick="copyShareUrlDirect()" class="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold flex-shrink-0 transition flex items-center gap-1">
-                        <i class="fa-solid fa-copy"></i> Copy
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Change or Join Room -->
-    <div id="modal-room" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-100 p-5 space-y-4 relative text-left">
-            <button onclick="closeRoomModal()" class="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition text-lg w-8 h-8 flex items-center justify-center rounded-full bg-slate-100">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-
-            <div class="flex items-center gap-2 text-slate-900">
-                <i class="fa-solid fa-users text-orange-500 text-xl"></i>
-                <h3 class="font-bold text-base">Đổi / Tạo Mã Phòng Khác</h3>
-            </div>
-
-            <p class="text-xs text-slate-500 leading-relaxed">
-                Tạo một mã phòng riêng cho nhóm bạn (ví dụ: <code class="bg-slate-100 px-1 py-0.5 rounded text-orange-600">nhom-cong-ty-2026</code>). Những ai vào cùng mã phòng này sẽ xem & cập nhật chung danh sách quán.
-            </p>
-
-            <div class="space-y-3 pt-1">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Mã Phòng Muốn Vào</label>
-                    <input type="text" id="input-room-id" placeholder="Ví dụ: nhom-hoi-an-2026..." 
-                        class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none font-bold text-orange-600">
-                </div>
-
-                <div class="pt-2 flex items-center justify-end gap-2">
-                    <button onclick="changeRoomSubmit()" type="button" class="w-full py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition">
-                        Chuyển Sang Phòng Này
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notification Box -->
-    <div id="toast-container" class="fixed top-16 sm:top-20 right-3 sm:right-5 z-50 pointer-events-none space-y-2 max-w-xs sm:max-w-sm"></div>
 
     <script>
-        const EMOJI_OPTIONS = [
-            '🍜', '🍚', '☕', '🧋', '🍕', '🥩', '🍰', '🍔', 
-            '🍲', '🍣', '🍻', '🍹', '🥗', '🍦', '🥐', '🥟', '🌭', '🥪'
-        ];
-
-        // Price Tiers: "<100k", "100-250k", ">250k"
-        const DEFAULT_SPOTS = [
-            {
-                id: "1",
-                name: "Phở Thìn Lò Đúc",
-                district: "Hai Bà Trưng",
-                category: "Bún / Phở",
-                rating: 4.6,
-                price: "<100k",
-                emoji: "🍜",
-                maps: "",
-                notes: "Phở tái lăn xào xèo ngập hành hoa thơm phức. Đi ăn sáng rất ngon!"
-            },
-            {
-                id: "2",
-                name: "Cà Phê Giảng",
-                district: "Hoàn Kiếm",
-                category: "Cafe Chill",
-                rating: 4.7,
-                price: "<100k",
-                emoji: "☕",
-                maps: "",
-                notes: "Cà phê trứng lâu đời nổi tiếng Hà Nội. Vị béo ngậy đậm đà."
-            },
-            {
-                id: "3",
-                name: "Bún Đậu Mắm Tôm Hàng Khay",
-                district: "Hoàn Kiếm",
-                category: "Bún / Phở",
-                rating: 4.5,
-                price: "<100k",
-                emoji: "🥟",
-                maps: "",
-                notes: "Chả cốm giòn ngon, mắm tôm pha cực vừa miệng ngay trong ngõ nhỏ."
-            },
-            {
-                id: "4",
-                name: "The Workshop Coffee",
-                district: "Quận 1",
-                category: "Cafe Làm việc",
-                rating: 4.6,
-                price: "100-250k",
-                emoji: "💻",
-                maps: "",
-                notes: "Không gian làm việc yên tĩnh chuẩn Specialty Coffee giữa lòng Sài Gòn."
-            },
-            {
-                id: "5",
-                name: "Cơm Tấm Ba Cường",
-                district: "Quận 3",
-                category: "Cơm",
-                rating: 4.4,
-                price: "<100k",
-                emoji: "🍚",
-                maps: "",
-                notes: "Sườn nướng mật ong thơm xèo xèo, chả trứng siêu to béo ngậy."
-            },
-            {
-                id: "6",
-                name: "Lẩu Nướng Đêm Hồ Tây",
-                district: "Tây Hồ",
-                category: "Lẩu & Nướng",
-                rating: 4.5,
-                price: ">250k",
-                emoji: "🥩",
-                maps: "",
-                notes: "View mặt nước lộng gió chill ngút ngàn, đồ nướng ướp đậm đà."
-            },
-            {
-                id: "7",
-                name: "Trà Sữa Matcha House",
-                district: "Cầu Giấy",
-                category: "Trà Sữa / Ăn Vặt",
-                rating: 4.8,
-                price: "<100k",
-                emoji: "🧋",
-                maps: "",
-                notes: "Trà xanh đậm vị Nhật Bản, không gian học tập chill gọn gàng."
-            },
-            {
-                id: "8",
-                name: "Bia Hơi Ngõ Trạm",
-                district: "Hoàn Kiếm",
-                category: "Nhậu / Bia",
-                rating: 4.3,
-                price: "100-250k",
-                emoji: "🍻",
-                maps: "",
-                notes: "Bia hơi mát lạnh, đậu lướt ván giòn tan chuẩn không khí phố cổ."
-            }
-        ];
-
-        let spots = [];
-        let filteredSpots = [];
-        let currentRoomId = "nhom-foodie-pro";
-        let spinInterval = null;
-        let cloudSyncTimer = null;
-
-        window.onload = function() {
-            initRoomFromURL();
-            renderEmojiPicker();
-            loadSpotsFromLocal();
-            populateDistrictDropdowns();
-            applyFilters();
-            
-            // Sync with Cloud
-            syncFromCloud();
-            cloudSyncTimer = setInterval(() => syncFromCloud(false), 3000);
+        let places = [];
+        let selectedEmoji = '🍜';
+        
+        // --- REAL-TIME MQTT SYNC SETUP ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room') || 'team-foodie-' + Math.floor(Math.random()*10000);
+        if(!urlParams.get('room')) {
+            window.history.replaceState({}, '', `?room=${roomId}`);
+        }
+        
+        const brokerUrl = "broker.emqx.io";
+        const brokerPort = 8084; // WSS Port - Bắt buộc dùng cho GitHub Pages (HTTPS)
+        const topic = `vn/homnayangi/room/${roomId}`;
+        const clientId = "client_" + Math.random().toString(16).substr(2, 8);
+        
+        const client = new Paho.Client(brokerUrl, brokerPort, clientId);
+        
+        client.onMessageArrived = (message) => {
+            try {
+                const data = JSON.parse(message.payloadString);
+                if (Array.isArray(data)) {
+                    places = data; // Luôn lấy bản mới nhất trên mây đè xuống
+                    renderList();
+                }
+            } catch(e) { console.error(e); }
         };
 
-        function initRoomFromURL() {
-            const params = new URLSearchParams(window.location.search);
-            const urlRoom = params.get('room');
-            if (urlRoom && urlRoom.trim() !== '') {
-                currentRoomId = urlRoom.trim().toLowerCase();
-            } else {
-                currentRoomId = "nhom-foodie-pro";
+        client.onConnectionLost = (responseObject) => {
+            if (responseObject.errorCode !== 0) {
+                document.getElementById('sync-status').className = "text-xs font-bold text-red-500 bg-red-100 px-2 py-1 rounded-full";
+                document.getElementById('sync-status').innerHTML = "🔴 Mất kết nối";
+                setTimeout(connectMQTT, 3000); // Thử kết nối lại
             }
-            updateRoomUI();
-        }
+        };
 
-        function updateRoomUI() {
-            document.getElementById('text-room-name').textContent = currentRoomId;
-            document.getElementById('text-room-banner').textContent = currentRoomId;
-            document.getElementById('input-room-id').value = currentRoomId;
-            document.getElementById('share-modal-room-name').textContent = currentRoomId;
-            
-            const shareUrl = getFullShareUrl();
-            document.getElementById('input-share-url').value = shareUrl;
-        }
-
-        function getFullShareUrl() {
-            return `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
-        }
-
-        function getCloudEndpoint() {
-            return `https://api.jsonbin.io/v3/b/public-${currentRoomId.replace(/[^a-z0-9]/g, '')}`;
-        }
-
-        async function syncFromCloud(showToastFlag = false) {
-            const icon = document.getElementById('icon-sync-btn');
-            if (icon) icon.classList.add('animate-spin');
-
-            try {
-                const storageKey = 'food_finder_spots_room_' + currentRoomId;
-                const cloudKey = 'cloud_mock_db_' + currentRoomId;
-                
-                const cloudData = localStorage.getItem(cloudKey);
-                if (cloudData) {
-                    const parsed = JSON.parse(cloudData);
-                    if (JSON.stringify(parsed) !== JSON.stringify(spots)) {
-                        spots = parsed;
-                        localStorage.setItem(storageKey, JSON.stringify(spots));
-                        populateDistrictDropdowns();
-                        applyFilters();
-                        if (showToastFlag) showToast('🔄 Đã đồng bộ dữ liệu mới nhất!', 'info');
-                    } else if (showToastFlag) {
-                        showToast('Dữ liệu đã ở bản mới nhất!');
-                    }
-                } else {
-                    saveSpotsToLocalAndCloud();
+        function connectMQTT() {
+            client.connect({
+                useSSL: true,
+                onSuccess: () => {
+                    client.subscribe(topic);
+                    document.getElementById('sync-status').className = "text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full";
+                    document.getElementById('sync-status').innerHTML = "🟢 Real-time ON";
+                },
+                onFailure: (e) => {
+                    console.log("Connect failed, retrying...");
+                    setTimeout(connectMQTT, 3000);
                 }
-            } catch (err) {
-                console.error("Sync error:", err);
-            } finally {
-                if (icon) setTimeout(() => icon.classList.remove('animate-spin'), 400);
-            }
+            });
+        }
+        connectMQTT(); // Bắt đầu kết nối
+
+        // Hàm Đẩy dữ liệu lên mây
+        function publishData() {
+            const message = new Paho.Message(JSON.stringify(places));
+            message.destinationName = topic;
+            message.retained = true; // Lưu giữ tin nhắn cho người vào sau
+            client.send(message);
         }
 
-        function loadSpotsFromLocal() {
-            const storageKey = 'food_finder_spots_room_' + currentRoomId;
-            const stored = localStorage.getItem(storageKey);
-            if (stored) {
-                try {
-                    spots = JSON.parse(stored);
-                } catch(e) {
-                    spots = [...DEFAULT_SPOTS];
-                }
-            } else {
-                spots = [...DEFAULT_SPOTS];
-                saveSpotsToLocalAndCloud();
-            }
+        // --- GIAO DIỆN & LOGIC ---
+
+        function selectEmoji(element, emoji) {
+            selectedEmoji = emoji;
+            const items = document.querySelectorAll('#emoji-picker span');
+            items.forEach(el => el.classList.replace('border-orange-500', 'border-transparent'));
+            element.classList.replace('border-transparent', 'border-orange-500');
         }
 
-        function saveSpotsToLocalAndCloud() {
-            const storageKey = 'food_finder_spots_room_' + currentRoomId;
-            const cloudKey = 'cloud_mock_db_' + currentRoomId;
+        function toggleModal(show) {
+            document.getElementById('add-modal').style.display = show ? 'flex' : 'none';
+        }
+
+        function getPriceColor(price) {
+            if(price === '<100k') return 'bg-green-100 text-green-700';
+            if(price === '100-250k') return 'bg-blue-100 text-blue-700';
+            return 'bg-purple-100 text-purple-700';
+        }
+
+        function renderList() {
+            const listEl = document.getElementById('places-list');
+            const filterPrice = document.getElementById('filter-price').value;
             
-            localStorage.setItem(storageKey, JSON.stringify(spots));
-            localStorage.setItem(cloudKey, JSON.stringify(spots));
-            updateStatsCounters();
-        }
-
-        function renderEmojiPicker() {
-            const container = document.getElementById('emoji-picker-container');
-            container.innerHTML = EMOJI_OPTIONS.map(emoji => `
-                <button type="button" onclick="selectEmoji('${emoji}')" id="btn-emoji-${emoji}" 
-                    class="emoji-btn h-9 rounded-lg text-base flex items-center justify-center border border-transparent hover:bg-orange-100 transition">
-                    ${emoji}
-                </button>
-            `).join('');
-            selectEmoji('🍜');
-        }
-
-        function selectEmoji(emoji) {
-            document.getElementById('spot-emoji').value = emoji;
-            document.querySelectorAll('.emoji-btn').forEach(btn => {
-                btn.classList.remove('bg-orange-500', 'text-white', 'border-orange-500', 'shadow-sm');
-                btn.classList.add('hover:bg-orange-100');
-            });
-            const selectedBtn = document.getElementById(`btn-emoji-${emoji}`);
-            if (selectedBtn) {
-                selectedBtn.classList.add('bg-orange-500', 'border-orange-500', 'shadow-sm');
-                selectedBtn.classList.remove('hover:bg-orange-100');
-            }
-        }
-
-        function populateDistrictDropdowns() {
-            const districts = [...new Set(spots.map(s => s.district))].sort();
-            const filterSelect = document.getElementById('filter-district');
-            const currentVal = filterSelect.value;
-            filterSelect.innerHTML = '<option value="">Tất cả Quận</option>';
-            districts.forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d;
-                opt.textContent = d;
-                filterSelect.appendChild(opt);
-            });
-            filterSelect.value = currentVal;
-
-            const datalist = document.getElementById('district-suggestions');
-            datalist.innerHTML = '';
-            districts.forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d;
-                datalist.appendChild(opt);
-            });
-        }
-
-        function getSafeGoogleMapsUrl(spot) {
-            if (spot.maps && spot.maps.trim().startsWith('http')) {
-                return spot.maps.trim();
-            }
-            const searchQuery = encodeURIComponent(`${spot.name} ${spot.district}`);
-            return `https://www.google.com/maps/search/?api=1&query=${searchQuery}`;
-        }
-
-        function getPriceRank(priceStr) {
-            if (priceStr === '<100k') return 1;
-            if (priceStr === '100-250k') return 2;
-            if (priceStr === '>250k') return 3;
-            return 1;
-        }
-
-        function applyFilters() {
-            const query = document.getElementById('input-search').value.toLowerCase().trim();
-            const selectedDistrict = document.getElementById('filter-district').value;
-            const selectedCategory = document.getElementById('filter-category').value;
-            const selectedPrice = document.getElementById('filter-price').value;
-            const sortOption = document.getElementById('select-sort').value;
-
-            filteredSpots = spots.filter(spot => {
-                const matchQuery = !query || 
-                    spot.name.toLowerCase().includes(query) || 
-                    spot.notes.toLowerCase().includes(query) ||
-                    spot.district.toLowerCase().includes(query) ||
-                    spot.category.toLowerCase().includes(query);
-
-                const matchDistrict = !selectedDistrict || spot.district === selectedDistrict;
-                const matchCategory = !selectedCategory || spot.category === selectedCategory;
-                const matchPrice = !selectedPrice || spot.price === selectedPrice;
-
-                return matchQuery && matchDistrict && matchCategory && matchPrice;
-            });
-
-            filteredSpots.sort((a, b) => {
-                if (sortOption === 'rating-desc') return b.rating - a.rating;
-                if (sortOption === 'rating-asc') return a.rating - b.rating;
-                if (sortOption === 'name-asc') return a.name.localeCompare(b.name, 'vi');
-                if (sortOption === 'price-asc') return getPriceRank(a.price) - getPriceRank(b.price);
-                return 0;
-            });
-
-            renderGrid();
-            updateStatsCounters();
-        }
-
-        function renderGrid() {
-            const container = document.getElementById('spots-grid');
-            const emptyState = document.getElementById('empty-state');
-            const badgeCount = document.getElementById('filtered-count-badge');
-
-            badgeCount.textContent = filteredSpots.length;
-
-            if (filteredSpots.length === 0) {
-                container.innerHTML = '';
-                emptyState.classList.remove('hidden');
+            listEl.innerHTML = '';
+            
+            const filtered = places.filter(p => filterPrice === 'all' || p.price === filterPrice);
+            
+            if(filtered.length === 0) {
+                listEl.innerHTML = '<p class="text-center text-gray-500 text-sm mt-5">Chưa có quán nào trong mục này. Bấm dấu + để thêm nhé!</p>';
                 return;
             }
 
-            emptyState.classList.add('hidden');
-            container.innerHTML = filteredSpots.map(spot => {
-                const mapsUrl = getSafeGoogleMapsUrl(spot);
-                
-                let priceBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                if (spot.price === '100-250k') priceBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
-                if (spot.price === '>250k') priceBadgeClass = 'bg-purple-50 text-purple-700 border-purple-200';
-
-                return `
-                    <div class="bg-white rounded-2xl border border-slate-200/80 p-3.5 sm:p-4 shadow-sm hover:shadow-lg transition-all duration-200 flex flex-col justify-between group relative">
-                        
-                        <div>
-                            <!-- Header Info with Emoji Circle -->
-                            <div class="flex items-start gap-2.5 mb-2.5">
-                                <div class="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0 group-hover:scale-105 transition-transform">
-                                    ${spot.emoji || '🍜'}
-                                </div>
-
-                                <div class="flex-grow min-w-0">
-                                    <div class="flex items-center justify-between gap-1 mb-0.5">
-                                        <span class="text-[10px] sm:text-[11px] font-bold text-orange-600 uppercase tracking-wide truncate">
-                                            ${spot.category}
-                                        </span>
-                                        <span class="px-1.5 py-0.5 rounded-md text-[11px] font-extrabold bg-amber-100 text-amber-800 flex-shrink-0">
-                                            ⭐ ${spot.rating}
-                                        </span>
-                                    </div>
-                                    <h4 class="font-extrabold text-sm sm:text-base text-slate-900 group-hover:text-orange-600 transition-colors truncate break-word-custom">
-                                        ${spot.name}
-                                    </h4>
-                                    <div class="flex items-center gap-1.5 mt-1 text-xs text-slate-500 font-medium flex-wrap">
-                                        <span class="truncate max-w-[120px]"><i class="fa-solid fa-location-dot text-orange-500 mr-1"></i>${spot.district}</span>
-                                        <span>•</span>
-                                        <span class="px-1.5 py-0.2 rounded border text-[10px] font-bold ${priceBadgeClass}">
-                                            ${spot.price || '<100k'}
-                                        </span>
-                                    </div>
-                                </div>
+            filtered.forEach(p => {
+                listEl.innerHTML += `
+                    <div class="bg-white rounded-xl p-4 shadow-sm flex items-center gap-4 relative break-words">
+                        <div class="text-4xl shrink-0">${p.emoji}</div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-bold text-lg leading-tight mb-1 truncate whitespace-normal break-words">${p.name}</h3>
+                            <div class="flex flex-wrap items-center gap-2 text-xs font-bold mt-1">
+                                <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded">📍 ${p.district}</span>
+                                <span class="${getPriceColor(p.price)} px-2 py-1 rounded">${p.price}</span>
                             </div>
-
-                            <!-- Notes -->
-                            <p class="text-xs text-slate-500 line-clamp-2 bg-slate-50 p-2 sm:p-2.5 rounded-xl border border-slate-100 italic break-word-custom">
-                                ${spot.notes ? `"${spot.notes}"` : 'Chưa có ghi chú đặc biệt.'}
-                            </p>
                         </div>
-
-                        <!-- Card Action Footer -->
-                        <div class="pt-2.5 mt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
-                            <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="flex-grow py-1.5 sm:py-2 px-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold text-xs flex items-center justify-center gap-1.5 transition">
-                                <i class="fa-solid fa-map-location-dot text-xs"></i> Google Maps
+                        <div class="flex flex-col gap-2 shrink-0">
+                            <a href="${p.map}" target="_blank" rel="noopener noreferrer" class="bg-blue-50 text-blue-500 p-2 rounded-lg text-center shadow-sm active:scale-95">
+                                🗺️
                             </a>
-                            
-                            <div class="flex items-center gap-0.5">
-                                <button onclick="openSpotModal('${spot.id}')" title="Sửa" class="w-7 h-7 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center text-xs transition">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                </button>
-                                <button onclick="deleteSpot('${spot.id}')" title="Xóa" class="w-7 h-7 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center text-xs transition">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            </div>
+                            <button onclick="deletePlace('${p.id}')" class="bg-red-50 text-red-500 p-2 rounded-lg shadow-sm active:scale-95">
+                                🗑️
+                            </button>
                         </div>
-
                     </div>
                 `;
-            }).join('');
-        }
-
-        function resetFilters() {
-            document.getElementById('input-search').value = '';
-            document.getElementById('filter-district').value = '';
-            document.getElementById('filter-category').value = '';
-            document.getElementById('filter-price').value = '';
-            document.getElementById('select-sort').value = 'rating-desc';
-            applyFilters();
-            showToast('Đã đặt lại tất cả bộ lọc');
-        }
-
-        function updateStatsCounters() {
-            document.getElementById('stat-total-count').textContent = spots.length;
-            const uniqueDistricts = new Set(spots.map(s => s.district)).size;
-            document.getElementById('stat-district-count').textContent = uniqueDistricts;
-        }
-
-        function openSpotModal(id = null) {
-            const modal = document.getElementById('modal-spot');
-            const title = document.getElementById('modal-spot-title');
-            const form = document.getElementById('form-spot');
-
-            form.reset();
-            document.getElementById('spot-id').value = '';
-
-            if (id) {
-                const spot = spots.find(s => s.id === id);
-                if (spot) {
-                    title.innerHTML = `<i class="fa-solid fa-pen-to-square text-orange-400"></i> Chỉnh Sửa Quán`;
-                    document.getElementById('spot-id').value = spot.id;
-                    document.getElementById('spot-name').value = spot.name;
-                    document.getElementById('spot-district').value = spot.district;
-                    document.getElementById('spot-category').value = spot.category;
-                    document.getElementById('spot-rating').value = spot.rating;
-                    document.getElementById('spot-price').value = spot.price || '<100k';
-                    document.getElementById('spot-maps').value = spot.maps || '';
-                    document.getElementById('spot-notes').value = spot.notes || '';
-                    selectEmoji(spot.emoji || '🍜');
-                }
-            } else {
-                title.innerHTML = `<i class="fa-solid fa-square-plus text-orange-400"></i> Thêm Quán Mới`;
-                selectEmoji('🍜');
-            }
-
-            modal.classList.remove('hidden');
-        }
-
-        function closeSpotModal() {
-            document.getElementById('modal-spot').classList.add('hidden');
-        }
-
-        function saveSpotForm(e) {
-            e.preventDefault();
-            const id = document.getElementById('spot-id').value;
-            const name = document.getElementById('spot-name').value.trim();
-            const emoji = document.getElementById('spot-emoji').value || '🍜';
-            const district = document.getElementById('spot-district').value.trim();
-            const category = document.getElementById('spot-category').value;
-            const rating = parseFloat(document.getElementById('spot-rating').value) || 4.5;
-            const price = document.getElementById('spot-price').value;
-            const maps = document.getElementById('spot-maps').value.trim();
-            const notes = document.getElementById('spot-notes').value.trim();
-
-            if (id) {
-                const index = spots.findIndex(s => s.id === id);
-                if (index !== -1) {
-                    spots[index] = { id, name, emoji, district, category, rating, price, maps, notes };
-                    showToast('Đã cập nhật thông tin!');
-                }
-            } else {
-                const newSpot = {
-                    id: Date.now().toString(),
-                    name, emoji, district, category, rating, price, maps, notes
-                };
-                spots.unshift(newSpot);
-                showToast('Đã thêm quán mới!');
-            }
-
-            saveSpotsToLocalAndCloud();
-            populateDistrictDropdowns();
-            applyFilters();
-            closeSpotModal();
-        }
-
-        function deleteSpot(id) {
-            const index = spots.findIndex(s => s.id === id);
-            if (index === -1) return;
-
-            spots.splice(index, 1);
-            saveSpotsToLocalAndCloud();
-            populateDistrictDropdowns();
-            applyFilters();
-            showToast('Đã xóa quán khỏi danh sách');
-        }
-
-        function openRandomModal() {
-            if (filteredSpots.length === 0) {
-                showToast('Danh sách hiện tại đang rỗng! Hãy chọn bộ lọc khác.', 'warning');
-                return;
-            }
-
-            const modal = document.getElementById('modal-random');
-            modal.classList.remove('hidden');
-            startFastSpinning();
-        }
-
-        function closeRandomModal() {
-            if (spinInterval) clearInterval(spinInterval);
-            document.getElementById('modal-random').classList.add('hidden');
-        }
-
-        function startFastSpinning() {
-            if (filteredSpots.length === 0) return;
-
-            const tempEmoji = document.getElementById('picker-temp-emoji');
-            const tempName = document.getElementById('picker-temp-name');
-            const tempSub = document.getElementById('picker-temp-sub');
-            const btnStart = document.getElementById('btn-spin-start');
-            const resultActions = document.getElementById('picker-result-actions');
-
-            btnStart.classList.add('hidden');
-            resultActions.classList.add('hidden');
-
-            tempEmoji.classList.add('animate-fast-flash');
-            
-            let counter = 0;
-            const totalSpins = 5;
-
-            spinInterval = setInterval(() => {
-                const randomIndex = Math.floor(Math.random() * filteredSpots.length);
-                const currentCandidate = filteredSpots[randomIndex];
-                
-                tempEmoji.textContent = currentCandidate.emoji || '🍜';
-                tempName.textContent = currentCandidate.name;
-                tempSub.textContent = `📍 ${currentCandidate.district} • Giá: ${currentCandidate.price || '<100k'}`;
-                
-                counter++;
-                if (counter >= totalSpins) {
-                    clearInterval(spinInterval);
-                    tempEmoji.classList.remove('animate-fast-flash');
-                    finishFastSpinning(currentCandidate);
-                }
-            }, 70);
-        }
-
-        function finishFastSpinning(winner) {
-            const tempEmoji = document.getElementById('picker-temp-emoji');
-            const tempName = document.getElementById('picker-temp-name');
-            const tempSub = document.getElementById('picker-temp-sub');
-            const btnMaps = document.getElementById('btn-winner-maps');
-            const resultActions = document.getElementById('picker-result-actions');
-
-            tempEmoji.textContent = winner.emoji || '🎉';
-            tempName.textContent = winner.name;
-            tempSub.textContent = `GỢI Ý: ${winner.district} • ${winner.category} (${winner.price || '<100k'})`;
-
-            btnMaps.href = getSafeGoogleMapsUrl(winner);
-            resultActions.classList.remove('hidden');
-
-            confetti({
-                particleCount: 50,
-                spread: 50,
-                origin: { y: 0.6 }
             });
         }
 
-        // Share & Room Modal Handlers
-        function openShareModal() {
-            updateRoomUI();
-            document.getElementById('modal-share').classList.remove('hidden');
-        }
+        function savePlace() {
+            const name = document.getElementById('input-name').value;
+            const district = document.getElementById('input-district').value;
+            const price = document.getElementById('input-price').value;
+            const map = document.getElementById('input-map').value;
 
-        function closeShareModal() {
-            document.getElementById('modal-share').classList.add('hidden');
-        }
+            if(!name || !map) return alert('Vui lòng nhập đủ Tên quán và Link Google Maps!');
 
-        function copyShareUrlDirect() {
-            const shareUrl = getFullShareUrl();
-            const input = document.getElementById('input-share-url');
-            input.select();
+            places.unshift({
+                id: Date.now().toString(),
+                emoji: selectedEmoji,
+                name, district, price, map
+            });
+
+            publishData(); // Đẩy lên mây ngay lập tức
+            renderList();
+            toggleModal(false);
             
-            try {
-                navigator.clipboard.writeText(shareUrl);
-                showToast('📋 Đã copy link phòng! Gửi ngay cho bạn bè.');
-            } catch(e) {
-                document.execCommand('copy');
-                showToast('📋 Đã copy link phòng!');
+            // Clear form
+            document.getElementById('input-name').value = '';
+            document.getElementById('input-district').value = '';
+            document.getElementById('input-map').value = '';
+        }
+
+        function deletePlace(id) {
+            if(confirm('Bạn có chắc muốn xoá quán này? Các máy khác cũng sẽ bị xoá theo!')) {
+                places = places.filter(p => p.id !== id);
+                publishData(); // Đẩy lệnh xoá lên mây (ghi đè mảng mới)
+                renderList();
             }
         }
 
-        function openRoomModal() {
-            document.getElementById('modal-room').classList.remove('hidden');
-        }
+        function spinRandom() {
+            if(places.length === 0) return alert('Hãy thêm vài quán vào danh sách trước nhé!');
+            
+            const filterPrice = document.getElementById('filter-price').value;
+            const filtered = places.filter(p => filterPrice === 'all' || p.price === filterPrice);
+            
+            if(filtered.length === 0) return alert('Không có quán nào ở mức giá này để quay!');
 
-        function closeRoomModal() {
-            document.getElementById('modal-room').classList.add('hidden');
-        }
-
-        function changeRoomSubmit() {
-            const inputVal = document.getElementById('input-room-id').value.trim().toLowerCase();
-            if (!inputVal) return;
-
-            currentRoomId = inputVal;
-            updateRoomUI();
-            loadSpotsFromLocal();
-            populateDistrictDropdowns();
-            applyFilters();
-            syncFromCloud();
-            closeRoomModal();
-
-            const newUrl = getFullShareUrl();
-            window.history.pushState({ path: newUrl }, '', newUrl);
-
-            showToast(`Đã vào phòng: ${currentRoomId}`);
-        }
-
-        function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(spots, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `hom-nay-an-gi-${currentRoomId}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-            showToast('Đã xuất file sao lưu!');
-        }
-
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedSpots = JSON.parse(e.target.result);
-                    if (Array.isArray(importedSpots) && importedSpots.length > 0) {
-                        spots = importedSpots;
-                        saveSpotsToLocalAndCloud();
-                        populateDistrictDropdowns();
-                        applyFilters();
-                        showToast(`Đã nhập thành công ${importedSpots.length} địa điểm!`);
-                    } else {
-                        showToast('File dữ liệu không hợp lệ', 'error');
-                    }
-                } catch(err) {
-                    showToast('Có lỗi khi đọc file JSON', 'error');
+            const resultEl = document.getElementById('random-result');
+            let count = 0;
+            const interval = setInterval(() => {
+                const random = filtered[Math.floor(Math.random() * filtered.length)];
+                resultEl.innerHTML = `<span class="text-yellow-200">${random.emoji}</span> ${random.name}`;
+                count++;
+                if(count > 8) {
+                    clearInterval(interval);
+                    const final = filtered[Math.floor(Math.random() * filtered.length)];
+                    resultEl.innerHTML = `
+                        <div class="flex flex-col items-center">
+                            <span class="text-3xl mb-1">${final.emoji}</span>
+                            <span class="text-white break-words w-full px-2">${final.name}</span>
+                            <a href="${final.map}" target="_blank" class="mt-3 bg-white text-orange-600 text-sm py-2 px-4 rounded-full font-bold inline-block">
+                                🗺️ Đi ngay
+                            </a>
+                        </div>
+                    `;
                 }
-            };
-            reader.readAsText(file);
+            }, 50);
         }
 
-        function confirmResetDefaultData() {
-            spots = [...DEFAULT_SPOTS];
-            saveSpotsToLocalAndCloud();
-            populateDistrictDropdowns();
-            applyFilters();
-            showToast('Đã khôi phục dữ liệu mẫu ban đầu');
+        function copyRoomLink() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Đã copy link! Hãy gửi link này cho bạn bè, ai mở link cũng sẽ thấy chung dữ liệu Real-time nhé!');
+            }).catch(() => {
+                alert('Copy lỗi! Bạn hãy copy đường link trên thanh địa chỉ của trình duyệt nhé.');
+            });
         }
-
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            const bgColor = type === 'error' ? 'bg-rose-600' : type === 'warning' ? 'bg-amber-500' : type === 'info' ? 'bg-blue-600' : 'bg-slate-900';
-            
-            toast.className = `${bgColor} text-white px-3.5 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 transform transition-all duration-300 translate-x-10 opacity-0 pointer-events-auto`;
-            toast.innerHTML = `
-                <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-orange-400"></i>
-                <span class="break-word-custom">${message}</span>
-            `;
-
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.classList.remove('translate-x-10', 'opacity-0');
-            }, 10);
-
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-x-10');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
+        
+        // Khởi tạo trạng thái ban đầu để chọn icon đầu tiên
+        document.querySelectorAll('#emoji-picker span')[0].classList.replace('border-transparent', 'border-orange-500');
     </script>
 </body>
 </html>
