@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hôm Nay Ăn Gì & Cà Phê Ở Đâu?</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { brand: { 50: '#fff7ed', 500: '#f97316', 600: '#ea580c' } },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Paho MQTT & Canvas Confetti -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        @keyframes fastFlash {
+            0% { opacity: 0.3; transform: scale(0.92); }
+            50% { opacity: 1; transform: scale(1.08); }
+            100% { opacity: 0.3; transform: scale(0.92); }
+        }
+        .animate-fast-flash { animation: fastFlash 0.07s infinite; }
+        .break-word-custom { overflow-wrap: anywhere; word-break: break-word; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col min-h-screen">
+
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            
+            <!-- Logo & Room Status -->
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-2xl bg-orange-100 flex items-center justify-center text-xl flex-shrink-0">
+                    🍜
+                </div>
+                <div class="min-w-0 flex-1">
+                    <h1 class="font-extrabold text-base sm:text-lg text-slate-900 leading-tight truncate">Hôm Nay Ăn Gì?</h1>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                        <span id="room-status-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold border border-emerald-100 cursor-pointer" onclick="openShareModal()">
+                            <span id="sync-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span id="text-room-name" class="truncate max-w-[120px]">đang kết nối...</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <button onclick="openShareModal()" class="hidden sm:flex px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 font-bold text-xs transition border border-rose-200 items-center gap-1.5 active:scale-95">
+                    <i class="fa-solid fa-share-nodes"></i> Chia Sẻ Link
+                </button>
+
+                <button onclick="openRandomModal()" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm shadow-md transition active:scale-95 flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-amber-200"></i> Gợi Ý 0.35s
+                </button>
+
+                <button onclick="openSpotModal()" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm shadow-md transition active:scale-95 flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Thêm Quán</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Hero Banner -->
+        <section class="relative overflow-hidden rounded-3xl bg-[#111827] text-white p-6 sm:p-8 shadow-lg bg-gradient-to-r from-slate-900 via-orange-950/40 to-slate-900">
+            <div class="relative z-10 max-w-2xl space-y-3">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30 uppercase tracking-wide">
+                        <i class="fa-solid fa-bolt"></i> Gợi ý trong 0.35 giây
+                    </span>
+                    <button onclick="openShareModal()" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition cursor-pointer">
+                        <i class="fa-solid fa-users"></i> Phòng: <span id="banner-room-id" class="text-white">...</span> (Đổi)
+                    </button>
+                </div>
+
+                <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-snug">
+                    Cùng Nhóm Bạn Ăn Ngon - Chọn Quán Trong Tích Tắc!
+                </h2>
+                <p class="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-xl">
+                    Lưu danh sách quán tủ, đồng bộ tức thì với nhóm bạn qua Mã Phòng. Bấm nút quay ngẫu nhiên 0.35s để quyết định món ăn mỗi ngày!
+                </p>
+                
+                <div class="pt-2 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-300">
+                    <div class="flex items-center gap-1.5 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/50">
+                        <i class="fa-solid fa-store text-orange-400"></i>
+                        <span>Đã lưu: <strong id="stat-total" class="text-white">0</strong> quán</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/50">
+                        <i class="fa-solid fa-location-dot text-amber-400"></i>
+                        <span>Khu vực: <strong id="stat-districts" class="text-white">0</strong> quận</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Decorative image -->
+            <img src="https://placehold.co/200x200/111827/f97316?text=Bento" class="absolute -right-10 -bottom-10 opacity-20 w-64 h-64 object-cover rounded-xl transform rotate-12 blur-[2px]" alt="Bento" onerror="this.style.display='none'">
+        </section>
+
+        <!-- Filters Section -->
+        <section class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            
+            <div class="flex flex-col md:flex-row gap-3">
+                <div class="relative flex-grow">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Tìm tên quán, món ăn, ghi chú..." 
+                        class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm transition-all">
+                </div>
+                <div class="md:w-64 flex-shrink-0">
+                    <select id="filter-sort" onchange="applyFilters()" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-sm font-medium text-slate-700">
+                        <option value="rating-desc">⭐ Đánh giá (Cao -> Thấp)</option>
+                        <option value="rating-asc">⭐ Đánh giá (Thấp -> Cao)</option>
+                        <option value="name-asc">🔤 Tên A-Z</option>
+                        <option value="price-asc">💵 Giá rẻ trước</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wide">Quận / Khu vực</label>
+                    <select id="filter-district" onchange="applyFilters()" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 outline-none focus:border-orange-500 truncate"></select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wide">Loại hình / Món ăn</label>
+                    <select id="filter-category" onchange="applyFilters()" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 outline-none focus:border-orange-500 truncate">
+                        <option value="">Tất cả Thể Loại</option>
+                        <option value="Trà Sữa / Ăn Vặt">🧋 Trà Sữa / Ăn Vặt</option>
+                        <option value="Cafe Chill">☕ Cafe Chill</option>
+                        <option value="Cafe Làm Việc">💻 Cafe Làm Việc</option>
+                        <option value="Bún / Phở / Mì">🍜 Bún / Phở / Mì</option>
+                        <option value="Cơm / Đồ Mặn">🍚 Cơm / Đồ Mặn</option>
+                        <option value="Lẩu / Nướng">🍲 Lẩu / Nướng</option>
+                        <option value="Nhậu">🍻 Nhậu</option>
+                        <option value="Khác">✨ Khác</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 mb-1 uppercase tracking-wide">Mức giá</label>
+                    <select id="filter-price" onchange="applyFilters()" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-slate-50 outline-none focus:border-orange-500 truncate">
+                        <option value="">Mọi mức giá</option>
+                        <option value="<100k">&lt;100k</option>
+                        <option value="100-250k">100-250k</option>
+                        <option value=">250k">&gt;250k</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button onclick="resetFilters()" class="w-full py-2 px-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-sm font-semibold text-slate-600 transition flex items-center justify-center gap-1.5 h-[38px]">
+                        <i class="fa-solid fa-rotate-left text-xs"></i> Đặt lại bộ lọc
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="flex items-center justify-between mb-4 px-1">
+                <h3 class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                    Danh Sách Địa Điểm
+                    <span id="filtered-count" class="px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 text-xs font-bold">0</span>
+                </h3>
+                <button onclick="openRandomModal()" class="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 transition">
+                    <i class="fa-solid fa-bolt text-amber-500"></i> Gợi ý nhanh danh sách này
+                </button>
+            </div>
+
+            <div id="spots-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <!-- Cards render here -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden py-16 text-center bg-white rounded-2xl border border-dashed border-slate-300">
+                <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-3xl mb-3">🔍</div>
+                <p class="text-base font-bold text-slate-800">Không tìm thấy quán nào!</p>
+                <p class="text-sm text-slate-500 mt-1">Thử đổi bộ lọc hoặc thêm quán mới nhé.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Form Add/Edit Modal -->
+    <div id="modal-form" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
+            <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
+                <h3 id="modal-title" class="font-extrabold text-lg text-slate-800">Thêm Quán Mới</h3>
+                <button onclick="closeSpotModal()" class="text-slate-400 hover:text-slate-600 text-xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-200 transition">&times;</button>
+            </div>
+            
+            <form id="spot-form" onsubmit="saveSpot(event)" class="p-5 overflow-y-auto space-y-4">
+                <input type="hidden" id="input-id">
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Tên quán <span class="text-rose-500">*</span></label>
+                    <input type="text" id="input-name" required placeholder="VD: Bún chả Đắc Kim..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Chọn Icon Món <span class="text-rose-500">*</span></label>
+                    <div id="emoji-picker" class="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl max-h-24 overflow-y-auto hide-scroll">
+                        <!-- Emojis populated by JS -->
+                    </div>
+                    <input type="hidden" id="input-emoji" value="🍜" required>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Quận / Khu vực <span class="text-rose-500">*</span></label>
+                        <select id="input-district" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white focus:border-orange-500 outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Loại hình <span class="text-rose-500">*</span></label>
+                        <select id="input-category" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white focus:border-orange-500 outline-none">
+                            <option value="Trà Sữa / Ăn Vặt">Trà Sữa / Ăn Vặt</option>
+                            <option value="Cafe Chill">Cafe Chill</option>
+                            <option value="Cafe Làm Việc">Cafe Làm Việc</option>
+                            <option value="Bún / Phở / Mì">Bún / Phở / Mì</option>
+                            <option value="Cơm / Đồ Mặn">Cơm / Đồ Mặn</option>
+                            <option value="Lẩu / Nướng">Lẩu / Nướng</option>
+                            <option value="Nhậu">Nhậu</option>
+                            <option value="Khác">Khác</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Đánh giá sao</label>
+                        <select id="input-rating" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white focus:border-orange-500 outline-none font-medium">
+                            <option value="5.0">⭐ 5.0 Tuyệt vời</option>
+                            <option value="4.5" selected>⭐ 4.5 Rất tốt</option>
+                            <option value="4.0">⭐ 4.0 Tốt</option>
+                            <option value="3.5">⭐ 3.5 Khá</option>
+                            <option value="3.0">⭐ 3.0 Trung bình</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Mức giá <span class="text-rose-500">*</span></label>
+                        <select id="input-price" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white focus:border-orange-500 outline-none font-medium text-slate-700">
+                            <option value="<100k">&lt;100k</option>
+                            <option value="100-250k">100-250k</option>
+                            <option value=">250k">&gt;250k</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Link Google Maps (Bắt buộc)</label>
+                    <input type="url" id="input-map" required placeholder="https://maps.app.goo.gl/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Ghi chú (Tùy chọn)</label>
+                    <textarea id="input-notes" rows="2" placeholder="Món ngon nhất, lưu ý chỗ để xe..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-orange-500 outline-none"></textarea>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" onclick="closeSpotModal()" class="px-4 py-2.5 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-100 transition">Hủy</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-slate-900 text-white shadow-md hover:bg-slate-800 transition">Lưu Quán & Chia Sẻ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Random Modal -->
+    <div id="modal-random" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center relative">
+            <button onclick="closeRandomModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600 bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center transition">&times;</button>
+            <span class="inline-block px-3 py-1 rounded-full bg-orange-100 text-orange-600 font-bold text-xs mb-3">⚡ Gợi ý ngẫu nhiên</span>
+            <h3 class="font-extrabold text-xl text-slate-900 mb-4">Hôm Nay Ăn Quán Này!</h3>
+            
+            <div class="bg-slate-900 text-white p-6 rounded-2xl min-h-[160px] flex flex-col items-center justify-center border border-slate-800 shadow-inner mb-5">
+                <div id="rand-emoji" class="text-5xl mb-2 animate-bounce">🎲</div>
+                <div id="rand-name" class="text-lg font-bold text-amber-400 break-word-custom">Đang chọn...</div>
+                <div id="rand-sub" class="text-xs text-slate-400 mt-1">Chỉ mất 0.35 giây</div>
+            </div>
+            
+            <div class="space-y-2">
+                <button id="btn-spin" onclick="startSpin()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-sm shadow-lg active:scale-95 transition">CHỌN QUÁN NGAY!</button>
+                <div id="rand-actions" class="hidden flex flex-col gap-2">
+                    <a id="rand-maps" href="#" target="_blank" class="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md">
+                        <i class="fa-solid fa-map-location-dot"></i> Mở Google Maps
+                    </a>
+                    <button onclick="startSpin()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition">Đổi quán khác</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Room Modal -->
+    <div id="modal-share" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl shadow-xl p-5 relative">
+            <button onclick="closeShareModal()" class="absolute right-4 top-4 text-slate-400 hover:bg-slate-100 w-8 h-8 rounded-full transition flex items-center justify-center">&times;</button>
+            <h3 class="font-bold text-lg text-slate-900 mb-2 flex items-center gap-2"><i class="fa-solid fa-share-nodes text-orange-500"></i> Phòng Dùng Chung</h3>
+            <p class="text-xs text-slate-500 mb-4">Gửi link này cho bạn bè, dữ liệu sẽ tự động đồng bộ siêu tốc giữa tất cả mọi người.</p>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Mã phòng hiện tại:</label>
+                    <input type="text" id="share-room-input" class="w-full px-3 py-2 rounded-lg border border-slate-300 font-bold text-sm outline-none focus:border-orange-500">
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="changeRoom()" class="flex-1 bg-slate-900 text-white text-xs font-bold py-2 rounded-lg hover:bg-slate-800 transition">Đổi Mã Phòng</button>
+                    <button onclick="copyShareLink()" class="flex-1 bg-orange-500 text-white text-xs font-bold py-2 rounded-lg hover:bg-orange-600 transition shadow-sm"><i class="fa-solid fa-copy"></i> Copy Link</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const HANOI_DISTRICTS = ["Ba Đình", "Bắc Từ Liêm", "Cầu Giấy", "Đống Đa", "Hà Đông", "Hai Bà Trưng", "Hoàn Kiếm", "Hoàng Mai", "Long Biên", "Nam Từ Liêm", "Tây Hồ", "Thanh Xuân", "Sơn Tây", "Ba Vì", "Chương Mỹ", "Đan Phượng", "Đông Anh", "Gia Lâm", "Hoài Đức", "Mê Linh", "Mỹ Đức", "Phú Xuyên", "Phúc Thọ", "Quốc Oai", "Sóc Sơn", "Thạch Thất", "Thanh Oai", "Thanh Trì", "Thường Tín", "Ứng Hòa"].sort();
+        const EMOJIS = ['🍜', '🍚', '☕', '🧋', '🍕', '🥩', '🍔', '🍰', '🍣', '🥗', '🍞', '🍦', '🍻', '🦞', '🌮', '🥐', '🍲', '🍢'];
+        
+        let places = [];
+        let filteredPlaces = [];
+        let spinInterval = null;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentRoomId = urlParams.get('room') || 'nhom-foodie-pro';
+        
+        try {
+            if(!urlParams.get('room')) {
+                window.history.replaceState({}, '', `?room=${currentRoomId}`);
+            }
+        } catch(e) {
+            console.warn("Môi trường nhúng không cho phép đổi URL, hệ thống vẫn tiếp tục chạy bình thường.");
+        }
+        
+        const brokerUrl = "broker.emqx.io";
+        const brokerPort = 8084;
+        let topic = `vn/foodfinder/room/${currentRoomId.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        const clientId = "web_" + Math.random().toString(16).substr(2, 8);
+        const mqttClient = new Paho.Client(brokerUrl, brokerPort, clientId);
+
+        window.onload = () => {
+            initUI();
+            connectMQTT();
+        };
+
+        function initUI() {
+            document.getElementById('text-room-name').textContent = currentRoomId;
+            document.getElementById('banner-room-id').textContent = currentRoomId;
+            document.getElementById('share-room-input').value = currentRoomId;
+            
+            // Populates Districts
+            const filterDist = document.getElementById('filter-district');
+            const formDist = document.getElementById('input-district');
+            filterDist.innerHTML = '<option value="">Tất cả Quận</option>';
+            HANOI_DISTRICTS.forEach(d => {
+                filterDist.innerHTML += `<option value="${d}">${d}</option>`;
+                formDist.innerHTML += `<option value="${d}">${d}</option>`;
+            });
+
+            // Populates Emojis
+            const picker = document.getElementById('emoji-picker');
+            picker.innerHTML = EMOJIS.map(e => `<span class="emoji-btn cursor-pointer w-9 h-9 flex items-center justify-center bg-white border-2 border-transparent rounded-lg text-lg hover:bg-orange-50 transition" onclick="selectEmoji('${e}')">${e}</span>`).join('');
+            selectEmoji('🍜');
+        }
+
+        // --- MQTT SYNC LOGIC ---
+        function setStatus(text, type) {
+            const badge = document.getElementById('room-status-badge');
+            const dot = document.getElementById('sync-dot');
+            document.getElementById('text-room-name').textContent = text;
+            
+            if(type === 'ok') {
+                badge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold border border-emerald-100 cursor-pointer";
+                dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse";
+            } else {
+                badge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 text-[10px] font-bold border border-rose-100 cursor-pointer";
+                dot.className = "w-1.5 h-1.5 rounded-full bg-rose-500";
+            }
+        }
+
+        function connectMQTT() {
+            setStatus('Đang kết nối...', 'warn');
+            mqttClient.connect({
+                useSSL: true,
+                onSuccess: () => {
+                    setStatus(currentRoomId, 'ok');
+                    mqttClient.subscribe(topic);
+                },
+                onFailure: (e) => {
+                    setStatus('Mất kết nối', 'error');
+                    setTimeout(connectMQTT, 3000);
+                }
+            });
+        }
+
+        mqttClient.onConnectionLost = (resp) => {
+            if (resp.errorCode !== 0) {
+                setStatus('Đang thử lại...', 'error');
+                setTimeout(connectMQTT, 3000);
+            }
+        };
+
+        mqttClient.onMessageArrived = (msg) => {
+            try {
+                const data = JSON.parse(msg.payloadString);
+                if (Array.isArray(data)) {
+                    places = data;
+                    applyFilters();
+                }
+            } catch(e) { console.error(e); }
+        };
+
+        function pushData() {
+            if(mqttClient.isConnected()) {
+                const message = new Paho.Message(JSON.stringify(places));
+                message.destinationName = topic;
+                message.retained = true;
+                mqttClient.send(message);
+            }
+        }
+
+        // --- UI LOGIC ---
+        function getPriceColor(p) {
+            if(p === '<100k') return 'text-emerald-600';
+            if(p === '100-250k') return 'text-blue-600';
+            return 'text-purple-600';
+        }
+
+        function applyFilters() {
+            const query = document.getElementById('filter-search').value.toLowerCase();
+            const dist = document.getElementById('filter-district').value;
+            const cat = document.getElementById('filter-category').value;
+            const price = document.getElementById('filter-price').value;
+            const sort = document.getElementById('filter-sort').value;
+
+            filteredPlaces = places.filter(p => {
+                return (!query || p.name.toLowerCase().includes(query) || (p.notes||'').toLowerCase().includes(query)) &&
+                       (!dist || p.district === dist) &&
+                       (!cat || p.category === cat) &&
+                       (!price || p.price === price);
+            });
+
+            filteredPlaces.sort((a, b) => {
+                if(sort === 'rating-desc') return b.rating - a.rating;
+                if(sort === 'rating-asc') return a.rating - b.rating;
+                if(sort === 'name-asc') return a.name.localeCompare(b.name, 'vi');
+                if(sort === 'price-asc') {
+                    const v = {'<100k':1, '100-250k':2, '>250k':3};
+                    return (v[a.price]||0) - (v[b.price]||0);
+                }
+                return 0;
+            });
+
+            renderCards();
+            updateStats();
+        }
+
+        function renderCards() {
+            const grid = document.getElementById('spots-grid');
+            const empty = document.getElementById('empty-state');
+            document.getElementById('filtered-count').textContent = filteredPlaces.length;
+
+            if(filteredPlaces.length === 0) {
+                grid.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            grid.innerHTML = filteredPlaces.map(p => `
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full group relative">
+                    <!-- Top header -->
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-2xl border border-orange-100 group-hover:scale-105 transition">${p.emoji}</div>
+                            <div>
+                                <div class="text-[10px] font-bold text-orange-600 uppercase tracking-wide">${p.category}</div>
+                                <h4 class="font-extrabold text-sm sm:text-base text-slate-900 leading-tight mt-0.5 line-clamp-2 break-word-custom">${p.name}</h4>
+                            </div>
+                        </div>
+                        <div class="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[11px] font-extrabold rounded-md flex items-center gap-0.5 border border-amber-100 shrink-0">
+                            ⭐ ${Number(p.rating).toFixed(1)}
+                        </div>
+                    </div>
+                    
+                    <!-- Location & Price -->
+                    <div class="flex items-center gap-2 text-[11px] sm:text-xs font-semibold mt-1 mb-3">
+                        <span class="text-slate-500 truncate max-w-[140px]"><i class="fa-solid fa-location-dot text-orange-400 mr-1"></i>${p.district}</span>
+                        <span class="text-slate-300">•</span>
+                        <span class="${getPriceColor(p.price)}">${p.price}</span>
+                    </div>
+                    
+                    <!-- Notes -->
+                    <p class="text-xs text-slate-500 italic flex-grow bg-slate-50 p-2.5 rounded-lg border border-slate-100 break-word-custom line-clamp-3">
+                        ${p.notes ? `"${p.notes}"` : 'Chưa có ghi chú.'}
+                    </p>
+                    
+                    <!-- Footer Buttons -->
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+                        <a href="${p.map}" target="_blank" class="flex-grow py-2 rounded-xl bg-orange-50 text-orange-700 text-xs font-bold flex justify-center items-center gap-1.5 hover:bg-orange-100 transition">
+                            <i class="fa-solid fa-map-location-dot"></i> Mở Bản Đồ
+                        </a>
+                        <button onclick="openSpotModal('${p.id}')" class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteSpot('${p.id}')" class="w-8 h-8 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('stat-total').textContent = places.length;
+            document.getElementById('stat-districts').textContent = new Set(places.map(p => p.district)).size;
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-search').value = '';
+            document.getElementById('filter-district').value = '';
+            document.getElementById('filter-category').value = '';
+            document.getElementById('filter-price').value = '';
+            document.getElementById('filter-sort').value = 'rating-desc';
+            applyFilters();
+        }
+
+        // --- FORM HANDLING ---
+        function selectEmoji(e) {
+            document.getElementById('input-emoji').value = e;
+            document.querySelectorAll('.emoji-btn').forEach(btn => {
+                btn.classList.remove('border-orange-500', 'bg-orange-50');
+                btn.classList.add('border-transparent');
+                if(btn.textContent === e) btn.classList.add('border-orange-500', 'bg-orange-50');
+            });
+        }
+
+        function openSpotModal(id = null) {
+            document.getElementById('spot-form').reset();
+            document.getElementById('input-id').value = '';
+            selectEmoji('🍜');
+            document.getElementById('modal-title').textContent = id ? 'Chỉnh Sửa Quán' : 'Thêm Quán Mới';
+            
+            if(id) {
+                const p = places.find(x => x.id === id);
+                if(p) {
+                    document.getElementById('input-id').value = p.id;
+                    document.getElementById('input-name').value = p.name;
+                    document.getElementById('input-district').value = p.district;
+                    document.getElementById('input-category').value = p.category;
+                    document.getElementById('input-rating').value = p.rating;
+                    document.getElementById('input-price').value = p.price;
+                    document.getElementById('input-map').value = p.map;
+                    document.getElementById('input-notes').value = p.notes || '';
+                    selectEmoji(p.emoji);
+                }
+            }
+            document.getElementById('modal-form').classList.remove('hidden');
+        }
+
+        function closeSpotModal() { document.getElementById('modal-form').classList.add('hidden'); }
+
+        function saveSpot(e) {
+            e.preventDefault();
+            const id = document.getElementById('input-id').value;
+            const newSpot = {
+                id: id || Date.now().toString(),
+                name: document.getElementById('input-name').value,
+                emoji: document.getElementById('input-emoji').value,
+                district: document.getElementById('input-district').value,
+                category: document.getElementById('input-category').value,
+                rating: document.getElementById('input-rating').value,
+                price: document.getElementById('input-price').value,
+                map: document.getElementById('input-map').value,
+                notes: document.getElementById('input-notes').value
+            };
+            
+            if(id) {
+                const idx = places.findIndex(x => x.id === id);
+                if(idx > -1) places[idx] = newSpot;
+            } else {
+                places.unshift(newSpot);
+            }
+            
+            pushData();
+            applyFilters();
+            closeSpotModal();
+        }
+
+        function deleteSpot(id) {
+            if(confirm("Bạn có chắc muốn xóa quán này? Hành động này sẽ xóa đồng thời trên tất cả thiết bị của nhóm.")) {
+                places = places.filter(x => x.id !== id);
+                pushData();
+                applyFilters();
+            }
+        }
+
+        // --- RANDOMIZER ---
+        function openRandomModal() {
+            if(filteredPlaces.length === 0) return alert('Không có quán nào để quay! Hãy điều chỉnh bộ lọc.');
+            document.getElementById('modal-random').classList.remove('hidden');
+            startSpin();
+        }
+
+        function closeRandomModal() {
+            clearInterval(spinInterval);
+            document.getElementById('modal-random').classList.add('hidden');
+        }
+
+        function startSpin() {
+            if(filteredPlaces.length === 0) return;
+            const emojiEl = document.getElementById('rand-emoji');
+            const nameEl = document.getElementById('rand-name');
+            const subEl = document.getElementById('rand-sub');
+            
+            document.getElementById('btn-spin').classList.add('hidden');
+            document.getElementById('rand-actions').classList.add('hidden');
+            emojiEl.classList.add('animate-fast-flash');
+            
+            let count = 0;
+            spinInterval = setInterval(() => {
+                const r = filteredPlaces[Math.floor(Math.random() * filteredPlaces.length)];
+                emojiEl.textContent = r.emoji;
+                nameEl.textContent = r.name;
+                subEl.textContent = `Đang quay...`;
+                
+                if(++count > 6) {
+                    clearInterval(spinInterval);
+                    emojiEl.classList.remove('animate-fast-flash');
+                    emojiEl.textContent = r.emoji;
+                    nameEl.textContent = r.name;
+                    subEl.textContent = `📍 ${r.district} • Giá: ${r.price}`;
+                    document.getElementById('rand-maps').href = r.map;
+                    document.getElementById('rand-actions').classList.remove('hidden');
+                    confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+                }
+            }, 60);
+        }
+
+        // --- SHARE & ROOM ---
+        function openShareModal() { document.getElementById('modal-share').classList.remove('hidden'); }
+        function closeShareModal() { document.getElementById('modal-share').classList.add('hidden'); }
+        
+        function changeRoom() {
+            const val = document.getElementById('share-room-input').value.trim();
+            if(!val) return;
+            
+            currentRoomId = val;
+            
+            // Thử đổi URL, nếu bị chặn thì bỏ qua
+            try {
+                window.history.replaceState({}, '', '?room=' + encodeURIComponent(val));
+            } catch(e) {
+                console.warn("Không thể đổi URL trong môi trường này.");
+            }
+            
+            // Cập nhật lại topic và giao diện
+            topic = `vn/foodfinder/room/${currentRoomId.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+            places = []; // Xoá dữ liệu phòng cũ
+            applyFilters();
+            
+            // Kết nối lại MQTT vào phòng mới
+            if (mqttClient.isConnected()) {
+                mqttClient.disconnect();
+            }
+            setTimeout(() => {
+                initUI();
+                connectMQTT();
+            }, 500);
+            
+            closeShareModal();
+        }
+
+        function copyShareLink() {
+            let baseUrl = window.location.origin + window.location.pathname;
+            
+            // Nếu đang chạy trong môi trường xem trước (blob), dùng link GitHub làm mặc định
+            if (baseUrl.startsWith('blob:') || baseUrl === 'null') {
+                baseUrl = 'https://tulehaianhwork-dotcom.github.io/Hom-nay-an-gi/'; 
+            }
+            
+            const link = baseUrl + '?room=' + encodeURIComponent(currentRoomId);
+            
+            navigator.clipboard.writeText(link).then(() => {
+                alert("Đã copy link thành công! Gửi ngay cho bạn bè.");
+            }).catch(() => {
+                alert("Lỗi copy tự động. Vui lòng copy thủ công link sau:\n\n" + link);
+            });
+        }
+    </script>
+</body>
+</html>
