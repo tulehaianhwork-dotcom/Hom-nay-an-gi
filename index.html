@@ -338,11 +338,12 @@
     </div>
 
     <script>
-        const HANOI_DISTRICTS = ["Ba Đình", "Bắc Từ Liêm", "Cầu Giấy", "Đống Đa", "Hà Đông", "Hai Bà Trưng", "Hoàn Kiếm", "Hoàng Mai", "Long Biên", "Nam Từ Liêm", "Tây Hồ", "Thanh Xuân", "Sơn Tây", "Ba Vì", "Chương Mỹ", "Đan Phượng", "Đông Anh", "Gia Lâm", "Hoài Đức", "Mê Linh", "Mỹ Đức", "Phú Xuyên", "Phúc Thọ", "Quốc Oai", "Sóc Sơn", "Thạch Thất", "Thanh Oai", "Thanh Trì", "Thường Tín", "Ứng Hòa"].sort();
-        const EMOJIS = ['🍜', '🍚', '☕', '🧋', '🍕', '🥩', '🍔', '🍰', '🍣', '🥗', '🍞', '🍦', '🍻', '🦞', '🌮', '🥐', '🍲', '🍢'];
+        const HANOI_DISTRICTS = ["Ba Đình", "Bắc Từ Liêm", "Cầu Giấy", "Đống Đa", "Hà Đông", "Hai Bà Trưng", "Hoàn Kiếm", "Hoàng Mai", "Long Biên", "Nam Từ Liêm", "Tây Hồ", "Thanh Xuân", ].sort();
+        const EMOJIS = ['🍜', '🍚', '☕', '🧋', '🍕', '🥩', '🍔', '🍰', '🍣', '🥗', '🍞', '🍦', '🍻', '🦞', '🌮', '🥐', '🍲', '🍢', '🍝', '🍗'];
         
         let places = [];
         let filteredPlaces = [];
+        let suggestHistory = [];
         let spinInterval = null;
         
         // Setup Room URL safely
