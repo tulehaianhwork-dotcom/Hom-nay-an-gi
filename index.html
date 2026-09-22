@@ -41,6 +41,7 @@
         .animate-fast-flash { animation: fastFlash 0.07s infinite; }
         .break-word-custom { overflow-wrap: anywhere; word-break: break-word; hyphens: auto; }
         .hide-scroll::-webkit-scrollbar { display: none; }
+        .input-error { border-color: #e11d48 !important; box-shadow: 0 0 0 2px rgba(225,29,72,0.12); }
     </style>
 </head>
 <body class="text-slate-800 flex flex-col min-h-screen">
@@ -113,7 +114,6 @@
                     </div>
                 </div>
             </div>
-            <!-- Decorative image (Fallback to Bento Emoji visually) -->
             <div class="absolute -right-4 -bottom-4 opacity-20 text-[180px] transform rotate-12 blur-[1px] pointer-events-none select-none">
                 🍱
             </div>
@@ -207,10 +207,16 @@
             
             <form id="spot-form" onsubmit="saveSpot(event)" class="p-5 overflow-y-auto space-y-4">
                 <input type="hidden" id="input-id">
+
+                <!-- Cảnh báo trùng quán -->
+                <div id="dup-warning" class="hidden rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 leading-relaxed">
+                    <div class="font-bold flex items-center gap-1.5 mb-1"><i class="fa-solid fa-triangle-exclamation"></i> <span id="dup-warning-title">Quán này có thể đã tồn tại</span></div>
+                    <div id="dup-warning-body" class="break-word-custom"></div>
+                </div>
                 
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1.5">Tên quán <span class="text-rose-500">*</span></label>
-                    <input type="text" id="input-name" required placeholder="VD: Bún chả Đắc Kim..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none">
+                    <input type="text" id="input-name" required oninput="liveDupCheck()" placeholder="VD: Bún chả Đắc Kim..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none">
                 </div>
 
                 <div>
@@ -264,7 +270,7 @@
 
                 <div>
                     <label class="block text-xs font-bold text-slate-600 mb-1.5">Link Google Maps (Bắt buộc)</label>
-                    <input type="url" id="input-map" required placeholder="https://maps.app.goo.gl/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none">
+                    <input type="url" id="input-map" required oninput="liveDupCheck()" placeholder="https://maps.app.goo.gl/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none">
                 </div>
 
                 <div>
@@ -295,11 +301,14 @@
             
             <div class="space-y-2">
                 <button id="btn-spin" onclick="startSpin()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-sm shadow-lg active:scale-95 transition">CHỌN QUÁN NGAY!</button>
-                <div id="rand-actions" class="hidden flex flex-col gap-2">
+                <div id="rand-actions" class="hidden flex-col gap-2">
                     <a id="rand-maps" href="#" target="_blank" rel="noopener noreferrer" class="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md">
                         <i class="fa-solid fa-map-location-dot"></i> Mở Google Maps
                     </a>
                     <button onclick="startSpin()" class="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition">Đổi quán khác</button>
+                    <button onclick="resetSuggestHistory()" class="w-full py-2 rounded-xl text-slate-400 font-semibold text-[11px] hover:text-slate-600 transition">
+                        <i class="fa-solid fa-rotate-left"></i> Xóa lịch sử gợi ý (cho phép quay lại quán cũ)
+                    </button>
                 </div>
             </div>
         </div>
@@ -343,13 +352,14 @@
         
         let places = [];
         let filteredPlaces = [];
-        let suggestHistory = [];
+        let suggestHistory = [];   // id các quán vừa được gợi ý gần đây
         let spinInterval = null;
         
         // Setup Room URL safely
         const urlParams = new URLSearchParams(window.location.search);
         let currentRoomId = urlParams.get('room') || 'nhom-foodie-pro';
         let LOCAL_KEY = 'foodfinder_data_' + currentRoomId;
+        let HISTORY_KEY = 'foodfinder_history_' + currentRoomId;
         
         try {
             if(!urlParams.get('room')) {
@@ -372,17 +382,16 @@
         };
 
         function initUI() {
-            // Load from LocalStorage first to ensure data exists even if MQTT fails
             const localData = localStorage.getItem(LOCAL_KEY);
             if(localData) {
                 try { places = JSON.parse(localData); } catch(e) {}
             }
+            loadHistory();
             
             document.getElementById('text-room-name').textContent = currentRoomId;
             document.getElementById('banner-room-id').textContent = currentRoomId;
             document.getElementById('share-room-input').value = currentRoomId;
             
-            // Populates Districts
             const filterDist = document.getElementById('filter-district');
             const formDist = document.getElementById('input-district');
             filterDist.innerHTML = '<option value="">Tất cả Quận</option>';
@@ -391,16 +400,96 @@
                 formDist.innerHTML += `<option value="${d}">${d}</option>`;
             });
 
-            // Populates Emojis
             const picker = document.getElementById('emoji-picker');
             picker.innerHTML = EMOJIS.map(e => `<span class="emoji-btn cursor-pointer w-9 h-9 flex items-center justify-center bg-white border-2 border-transparent rounded-lg text-lg hover:bg-orange-50 transition" onclick="selectEmoji('${e}')">${e}</span>`).join('');
             selectEmoji('🍜');
             
-            applyFilters(); // Render immediately
+            applyFilters();
         }
 
-        // --- CUSTOM ALERTS & MODALS ---
-        function showAlert(title, message, isConfirm = false, onConfirm = null) {
+        /* ============================================================
+           1) CHỐNG TRÙNG QUÁN
+           ============================================================ */
+
+        // Chuẩn hoá tên: bỏ dấu, bỏ ký tự đặc biệt, gộp khoảng trắng
+        function normName(str) {
+            return (str || '')
+                .toString()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/gi, 'd')
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        // Chuẩn hoá link Google Maps để so sánh (bỏ http/https, www, tham số utm, dấu / cuối)
+        function normMapLink(str) {
+            let s = (str || '').toString().trim().toLowerCase();
+            if(!s) return '';
+            s = s.replace(/^https?:\/\//, '').replace(/^www\./, '');
+            s = s.split('#')[0];
+            // bỏ các tham số theo dõi thường gặp
+            try {
+                const [base, qs] = s.split('?');
+                if(qs) {
+                    const keep = qs.split('&').filter(kv => !/^(utm_|fbclid|gclid|ref|g_st|entry|shorturl)/.test(kv));
+                    s = keep.length ? base + '?' + keep.sort().join('&') : base;
+                }
+            } catch(e) {}
+            return s.replace(/\/+$/, '');
+        }
+
+        // Trả về quán bị trùng (nếu có). excludeId: bỏ qua chính nó khi đang sửa.
+        function findDuplicate(name, map, excludeId) {
+            const n = normName(name);
+            const m = normMapLink(map);
+            for (const p of places) {
+                if (excludeId && p.id === excludeId) continue;
+                const sameName = n && normName(p.name) === n;
+                const sameMap  = m && normMapLink(p.map) === m;
+                if (sameName || sameMap) {
+                    return { spot: p, sameName, sameMap };
+                }
+            }
+            return null;
+        }
+
+        // Cảnh báo ngay khi đang gõ (không chặn, chỉ nhắc)
+        function liveDupCheck() {
+            const box = document.getElementById('dup-warning');
+            const body = document.getElementById('dup-warning-body');
+            const nameEl = document.getElementById('input-name');
+            const mapEl = document.getElementById('input-map');
+            const id = document.getElementById('input-id').value;
+
+            const dup = findDuplicate(nameEl.value, mapEl.value, id);
+            nameEl.classList.remove('input-error');
+            mapEl.classList.remove('input-error');
+
+            if (dup) {
+                box.classList.remove('hidden');
+                const lyDo = dup.sameName && dup.sameMap ? 'trùng cả tên và link Google Maps'
+                           : dup.sameName ? 'trùng tên quán' : 'trùng link Google Maps';
+                body.innerHTML = `Đã có <strong>${escapeHtml(dup.spot.name)}</strong> (${escapeHtml(dup.spot.district)} • ${escapeHtml(dup.spot.category)}) trong danh sách — ${lyDo}. Bạn nên sửa quán cũ thay vì thêm mới.`;
+                if (dup.sameName) nameEl.classList.add('input-error');
+                if (dup.sameMap) mapEl.classList.add('input-error');
+            } else {
+                box.classList.add('hidden');
+                body.innerHTML = '';
+            }
+        }
+
+        function escapeHtml(s) {
+            return (s || '').toString()
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        /* ============================================================
+           2) ALERT / MODAL
+           ============================================================ */
+        function showAlert(title, message, isConfirm = false, onConfirm = null, confirmLabel = 'Xác nhận') {
             document.getElementById('modal-alert').classList.remove('hidden');
             document.getElementById('alert-title').textContent = title;
             document.getElementById('alert-message').textContent = message;
@@ -411,7 +500,7 @@
                 document.getElementById('alert-icon').className = "w-12 h-12 rounded-full bg-rose-100 text-rose-500 flex items-center justify-center text-xl mx-auto mb-3";
                 actions.innerHTML = `
                     <button onclick="closeAlertModal()" class="flex-1 bg-slate-100 text-slate-700 font-bold py-2.5 rounded-xl hover:bg-slate-200 transition">Hủy</button>
-                    <button id="btn-confirm-action" class="flex-1 bg-rose-600 text-white font-bold py-2.5 rounded-xl hover:bg-rose-700 transition shadow-md">Xác nhận Xóa</button>
+                    <button id="btn-confirm-action" class="flex-1 bg-rose-600 text-white font-bold py-2.5 rounded-xl hover:bg-rose-700 transition shadow-md">${escapeHtml(confirmLabel)}</button>
                 `;
                 document.getElementById('btn-confirm-action').onclick = () => {
                     if(onConfirm) onConfirm();
@@ -456,7 +545,7 @@
                     try {
                         const data = JSON.parse(msg.payloadString);
                         if (Array.isArray(data)) {
-                            places = data;
+                            places = dedupePlaces(data);
                             localStorage.setItem(LOCAL_KEY, JSON.stringify(places));
                             applyFilters();
                         }
@@ -481,8 +570,24 @@
             }
         }
 
+        // Dọn trùng khi nhận dữ liệu từ phòng (2 người thêm cùng lúc)
+        function dedupePlaces(list) {
+            const seenName = new Set();
+            const seenMap = new Set();
+            const out = [];
+            for (const p of list) {
+                const n = normName(p.name);
+                const m = normMapLink(p.map);
+                if ((n && seenName.has(n)) || (m && seenMap.has(m))) continue;
+                if (n) seenName.add(n);
+                if (m) seenMap.add(m);
+                out.push(p);
+            }
+            return out;
+        }
+
         function pushData() {
-            localStorage.setItem(LOCAL_KEY, JSON.stringify(places)); // Luôn lưu local
+            localStorage.setItem(LOCAL_KEY, JSON.stringify(places));
             try {
                 if(mqttClient && mqttClient.isConnected()) {
                     const message = new Paho.Message(JSON.stringify(places));
@@ -548,8 +653,8 @@
                         <div class="flex items-center gap-3 w-full pr-12">
                             <div class="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-2xl border border-orange-100 group-hover:scale-105 transition shrink-0">${p.emoji}</div>
                             <div class="min-w-0">
-                                <div class="text-[10px] font-bold text-orange-600 uppercase tracking-wide truncate">${p.category}</div>
-                                <h4 class="font-extrabold text-sm sm:text-base text-slate-900 leading-tight mt-0.5 break-word-custom">${p.name}</h4>
+                                <div class="text-[10px] font-bold text-orange-600 uppercase tracking-wide truncate">${escapeHtml(p.category)}</div>
+                                <h4 class="font-extrabold text-sm sm:text-base text-slate-900 leading-tight mt-0.5 break-word-custom">${escapeHtml(p.name)}</h4>
                             </div>
                         </div>
                         <div class="absolute right-4 top-4 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[11px] font-extrabold rounded-md flex items-center gap-0.5 border border-amber-100 shrink-0">
@@ -558,17 +663,17 @@
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs font-semibold mt-1 mb-3">
-                        <span class="text-slate-500 break-word-custom"><i class="fa-solid fa-location-dot text-orange-400 mr-1"></i>${p.district}</span>
+                        <span class="text-slate-500 break-word-custom"><i class="fa-solid fa-location-dot text-orange-400 mr-1"></i>${escapeHtml(p.district)}</span>
                         <span class="text-slate-300 hidden sm:inline">•</span>
-                        <span class="${getPriceColor(p.price)}">${p.price}</span>
+                        <span class="${getPriceColor(p.price)}">${escapeHtml(p.price)}</span>
                     </div>
                     
                     <p class="text-xs text-slate-500 italic flex-grow bg-slate-50 p-2.5 rounded-lg border border-slate-100 break-word-custom">
-                        ${p.notes ? `"${p.notes}"` : 'Chưa có ghi chú.'}
+                        ${p.notes ? `"${escapeHtml(p.notes)}"` : 'Chưa có ghi chú.'}
                     </p>
                     
                     <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
-                        <a href="${p.map}" target="_blank" rel="noopener noreferrer" class="flex-grow py-2 rounded-xl bg-orange-50 text-orange-700 text-xs font-bold flex justify-center items-center gap-1.5 hover:bg-orange-100 transition active:scale-95">
+                        <a href="${escapeHtml(p.map)}" target="_blank" rel="noopener noreferrer" class="flex-grow py-2 rounded-xl bg-orange-50 text-orange-700 text-xs font-bold flex justify-center items-center gap-1.5 hover:bg-orange-100 transition active:scale-95">
                             <i class="fa-solid fa-map-location-dot"></i> Mở Bản Đồ
                         </a>
                         <button onclick="openSpotModal('${p.id}')" class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition shrink-0"><i class="fa-solid fa-pen-to-square"></i></button>
@@ -604,6 +709,9 @@
         function openSpotModal(id = null) {
             document.getElementById('spot-form').reset();
             document.getElementById('input-id').value = '';
+            document.getElementById('dup-warning').classList.add('hidden');
+            document.getElementById('input-name').classList.remove('input-error');
+            document.getElementById('input-map').classList.remove('input-error');
             selectEmoji('🍜');
             document.getElementById('modal-title').textContent = id ? 'Chỉnh Sửa Quán' : 'Thêm Quán Mới';
             
@@ -629,16 +737,35 @@
         function saveSpot(e) {
             e.preventDefault();
             const id = document.getElementById('input-id').value;
+            const name = document.getElementById('input-name').value.trim();
+            const map = document.getElementById('input-map').value.trim();
+
+            // ===== CHẶN TRÙNG =====
+            const dup = findDuplicate(name, map, id);
+            if (dup) {
+                const lyDo = dup.sameName && dup.sameMap ? 'trùng cả tên quán và link Google Maps'
+                           : dup.sameName ? 'trùng tên quán' : 'trùng link Google Maps';
+                liveDupCheck();
+                showAlert(
+                    'Quán này đã có rồi!',
+                    `Danh sách đã có "${dup.spot.name}" (${dup.spot.district} • ${dup.spot.category}) — ${lyDo}.\n\nBạn muốn mở quán cũ ra sửa/bổ sung ghi chú không?`,
+                    true,
+                    () => { closeSpotModal(); openSpotModal(dup.spot.id); },
+                    'Mở quán cũ để sửa'
+                );
+                return;
+            }
+
             const newSpot = {
-                id: id || Date.now().toString(),
-                name: document.getElementById('input-name').value,
+                id: id || Date.now().toString() + Math.random().toString(16).slice(2, 6),
+                name: name,
                 emoji: document.getElementById('input-emoji').value,
                 district: document.getElementById('input-district').value,
                 category: document.getElementById('input-category').value,
                 rating: document.getElementById('input-rating').value,
                 price: document.getElementById('input-price').value,
-                map: document.getElementById('input-map').value,
-                notes: document.getElementById('input-notes').value
+                map: map,
+                notes: document.getElementById('input-notes').value.trim()
             };
             
             if(id) {
@@ -656,9 +783,73 @@
         function promptDeleteSpot(id) {
             showAlert("Xác nhận xóa", "Bạn có chắc muốn xóa quán này? Dữ liệu sẽ mất trên mọi thiết bị.", true, () => {
                 places = places.filter(x => x.id !== id);
+                suggestHistory = suggestHistory.filter(x => x !== id);
+                saveHistory();
                 pushData();
                 applyFilters();
-            });
+            }, 'Xác nhận Xóa');
+        }
+
+        /* ============================================================
+           3) RANDOM "THẬT" — KHÔNG LẶP LẠI QUÁN VỪA RA
+           ============================================================ */
+
+        function loadHistory() {
+            try {
+                const h = localStorage.getItem(HISTORY_KEY);
+                suggestHistory = h ? JSON.parse(h) : [];
+                if(!Array.isArray(suggestHistory)) suggestHistory = [];
+            } catch(e) { suggestHistory = []; }
+        }
+
+        function saveHistory() {
+            try { localStorage.setItem(HISTORY_KEY, JSON.stringify(suggestHistory)); } catch(e) {}
+        }
+
+        function resetSuggestHistory() {
+            suggestHistory = [];
+            saveHistory();
+            showAlert("Đã xóa lịch sử", "Từ giờ tất cả các quán đều có cơ hội được gợi ý lại như nhau.");
+        }
+
+        // Random chất lượng cao (crypto), tránh Math.random bị "cụm"
+        function randInt(max) {
+            if (max <= 0) return 0;
+            if (window.crypto && window.crypto.getRandomValues) {
+                const limit = Math.floor(4294967296 / max) * max; // loại bỏ modulo bias
+                const buf = new Uint32Array(1);
+                let v;
+                do { window.crypto.getRandomValues(buf); v = buf[0]; } while (v >= limit);
+                return v % max;
+            }
+            return Math.floor(Math.random() * max);
+        }
+
+        // Chọn quán: ưu tiên quán CHƯA ra gần đây; hết mới cho quay vòng lại
+        function pickWinner(list) {
+            if (list.length === 0) return null;
+            if (list.length === 1) return list[0];
+
+            // Nhớ tối đa ~60% số quán đang lọc (ít nhất 1, nhiều nhất list.length - 1)
+            const memory = Math.min(list.length - 1, Math.max(1, Math.round(list.length * 0.6)));
+            const ids = new Set(list.map(p => p.id));
+            // Chỉ giữ lịch sử của các quán còn tồn tại trong danh sách đang lọc
+            let recent = suggestHistory.filter(id => ids.has(id)).slice(-memory);
+
+            let pool = list.filter(p => !recent.includes(p.id));
+            if (pool.length === 0) {           // đã đi hết 1 vòng -> reset vòng mới
+                recent = [];
+                pool = list.slice();
+            }
+
+            const winner = pool[randInt(pool.length)];
+
+            // Cập nhật lịch sử (giữ các id ngoài bộ lọc để không mất dấu)
+            suggestHistory = suggestHistory.filter(id => !ids.has(id)).concat(recent, [winner.id]);
+            if (suggestHistory.length > 200) suggestHistory = suggestHistory.slice(-200);
+            saveHistory();
+
+            return winner;
         }
 
         function openRandomModal() {
@@ -677,36 +868,51 @@
 
         function startSpin() {
             if(filteredPlaces.length === 0) return;
+            clearInterval(spinInterval);
+
             const emojiEl = document.getElementById('rand-emoji');
             const nameEl = document.getElementById('rand-name');
             const subEl = document.getElementById('rand-sub');
-            
+            const actions = document.getElementById('rand-actions');
+
+            // CHỐT kết quả TRƯỚC, phần quay chỉ là hiệu ứng
+            const winner = pickWinner(filteredPlaces);
+            if (!winner) return;
+
             document.getElementById('btn-spin').classList.add('hidden');
-            document.getElementById('rand-actions').classList.add('hidden');
+            actions.classList.add('hidden');
+            actions.classList.remove('flex');
             emojiEl.classList.add('animate-fast-flash');
             
             let count = 0;
+            const totalTicks = 6;
             spinInterval = setInterval(() => {
-                const r = filteredPlaces[Math.floor(Math.random() * filteredPlaces.length)];
-                emojiEl.textContent = r.emoji;
-                nameEl.textContent = r.name;
-                subEl.textContent = `Đang quay...`;
-                
-                if(++count > 6) {
-                    clearInterval(spinInterval);
-                    emojiEl.classList.remove('animate-fast-flash');
+                count++;
+                if (count <= totalTicks) {
+                    const r = filteredPlaces[randInt(filteredPlaces.length)];
                     emojiEl.textContent = r.emoji;
                     nameEl.textContent = r.name;
-                    subEl.textContent = `📍 ${r.district} • Giá: ${r.price}`;
-                    document.getElementById('rand-maps').href = r.map;
-                    document.getElementById('rand-actions').classList.remove('hidden');
-                    if (typeof confetti === 'function') {
-                        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-                    }
+                    subEl.textContent = 'Đang quay...';
+                    return;
                 }
-            }, 60);
+
+                clearInterval(spinInterval);
+                emojiEl.classList.remove('animate-fast-flash');
+                emojiEl.textContent = winner.emoji;
+                nameEl.textContent = winner.name;
+                subEl.textContent = `📍 ${winner.district} • Giá: ${winner.price}`;
+                document.getElementById('rand-maps').href = winner.map;
+                actions.classList.remove('hidden');
+                actions.classList.add('flex');
+                if (typeof confetti === 'function') {
+                    confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+                }
+            }, 50);
         }
 
+        /* ============================================================
+           4) PHÒNG / CHIA SẺ
+           ============================================================ */
         function openShareModal() { document.getElementById('modal-share').classList.remove('hidden'); }
         function closeShareModal() { document.getElementById('modal-share').classList.add('hidden'); }
         
@@ -716,6 +922,7 @@
             
             currentRoomId = val;
             LOCAL_KEY = 'foodfinder_data_' + currentRoomId;
+            HISTORY_KEY = 'foodfinder_history_' + currentRoomId;
             
             try {
                 window.history.replaceState({}, '', '?room=' + encodeURIComponent(val));
@@ -725,19 +932,19 @@
             
             topic = `vn/foodfinder/room/${currentRoomId.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
             
-            // Clear and load new room local data
             const localData = localStorage.getItem(LOCAL_KEY);
             places = localData ? JSON.parse(localData) : [];
+            loadHistory();
+
+            document.getElementById('text-room-name').textContent = currentRoomId;
+            document.getElementById('banner-room-id').textContent = currentRoomId;
             applyFilters();
             
             if (mqttClient && mqttClient.isConnected()) {
                 mqttClient.disconnect();
             }
             
-            setTimeout(() => {
-                connectMQTT();
-            }, 500);
-            
+            setTimeout(() => { connectMQTT(); }, 500);
             closeShareModal();
         }
 
